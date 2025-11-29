@@ -16,7 +16,7 @@ MonoBehaviour:
   KeyColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
   KeyIcon: {fileID: 0}
   Damage: 40
-  FireRate: 1.0
+  FireRate: 1
   ProjectileSpeed: 30
   MovementSpeedMultiplier: 1
   MovementSpeedWhileShooting: 0.7
@@ -26,9 +26,8 @@ MonoBehaviour:
   SpreadAngle: 0
   SpecialAbility: 2
   AbilityPower: 3
-  AbilityCooldown: 0
-  MuzzleFlashPrefab: {fileID: 0}
-  TrailColor: {r: 1, g: 0.2, b: 0, a: 1}
-  ShootSound: {fileID: 8300000, guid: 53d2238f4c4b2aa4f8e559c7af9e0126, type: 3}
-  WeaponModelPrefab: {fileID: 2225486910712267859, guid: b318fabc73446b746a1005cede0c4ceb,
+  WeaponModelPrefab: {fileID: 6457654227390252937, guid: a460f032dc44c3147a194772d73d7839,
     type: 3}
+  CrosshairSprite: {fileID: 0}
+  CrosshairSize: 55
+  CrosshairColor: {r: 1, g: 1, b: 1, a: 1}

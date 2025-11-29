@@ -26,9 +26,8 @@ MonoBehaviour:
   SpreadAngle: 0
   SpecialAbility: 0
   AbilityPower: 1.25
-  AbilityCooldown: 0
-  MuzzleFlashPrefab: {fileID: 0}
-  TrailColor: {r: 1, g: 0.92, b: 0.016, a: 1}
-  ShootSound: {fileID: 8300000, guid: 53d2238f4c4b2aa4f8e559c7af9e0126, type: 3}
-  WeaponModelPrefab: {fileID: 2225486910712267859, guid: b318fabc73446b746a1005cede0c4ceb,
+  WeaponModelPrefab: {fileID: 162959780175003917, guid: faf48527a5a8a054bb1fb0f4770eab71,
     type: 3}
+  CrosshairSprite: {fileID: 0}
+  CrosshairSize: 55
+  CrosshairColor: {r: 1, g: 1, b: 1, a: 1}
