@@ -26,7 +26,7 @@ MonoBehaviour:
   SpreadAngle: 0
   SpecialAbility: 1
   AbilityPower: 5
-  WeaponModelPrefab: {fileID: 6265548173499333267, guid: 27f10b82971beea4eb501e050fe14999,
+  WeaponModelPrefab: {fileID: 2225486910712267859, guid: b6c88b7f40f7f994f98a48d1e67d3c75,
     type: 3}
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
