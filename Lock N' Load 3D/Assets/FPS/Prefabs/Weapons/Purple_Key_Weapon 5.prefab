@@ -62,7 +62,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 8334323006752503713}
   - {fileID: 4917782838448717432}
@@ -117,7 +117,7 @@ MonoBehaviour:
   AmmoUsedOnStartCharge: 1
   AmmoUsageRateWhileCharging: 2
   WeaponAnimator: {fileID: 0}
-  MuzzleFlashPrefab: {fileID: 748781637555137343, guid: 9f671b22f25370048a18fb1f821294ec,
+  MuzzleFlashPrefab: {fileID: 748781637555137343, guid: dea21bda9834f8f488df1d8250687946,
     type: 3}
   UnparentMuzzleFlash: 0
   ShootSfx: {fileID: 8300000, guid: 53d2238f4c4b2aa4f8e559c7af9e0126, type: 3}
@@ -348,9 +348,9 @@ Transform:
   m_GameObject: {fileID: 8088409166493606719}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.124, z: 0.895}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0.0367, y: 0.2303, z: 1.608}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2225486910712267856}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -370,32 +370,32 @@ PrefabInstance:
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.316
+      value: 0.548
       objectReference: {fileID: 0}
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.06
+      value: -0.097
       objectReference: {fileID: 0}
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.708
+      value: 1.1290001
       objectReference: {fileID: 0}
     - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
         type: 3}
@@ -431,6 +431,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539142774230187639, guid: 0f55891a432e5df42a4e907c42622d11,
+        type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

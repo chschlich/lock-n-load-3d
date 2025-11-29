@@ -348,9 +348,9 @@ Transform:
   m_GameObject: {fileID: 8088409166493606719}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.124, z: 0.895}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0.0367, y: 0.2303, z: 1.608}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2225486910712267856}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -370,32 +370,32 @@ PrefabInstance:
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.316
+      value: 0.548
       objectReference: {fileID: 0}
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.06
+      value: -0.097
       objectReference: {fileID: 0}
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.708
+      value: 1.1290001
       objectReference: {fileID: 0}
     - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
         type: 3}
@@ -431,6 +431,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4614651174707247212, guid: faf48527a5a8a054bb1fb0f4770eab71,
+        type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

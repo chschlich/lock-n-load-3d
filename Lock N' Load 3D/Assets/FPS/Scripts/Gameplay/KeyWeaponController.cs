@@ -23,6 +23,19 @@ namespace Unity.FPS.Gameplay
         [Header("Player Movement")]
         public PlayerCharacterController PlayerController;
         
+        [Header("Weapon Animation Settings")]
+        [Tooltip("Frequency at which the weapon will move around when the player is moving")]
+        public float BobFrequency = 10f;
+        
+        [Tooltip("How fast the weapon bob is applied, the bigger value the fastest")]
+        public float BobSharpness = 10f;
+        
+        [Tooltip("Distance the weapon bobs when walking")]
+        public float WalkBobAmount = 0.05f;
+        
+        [Tooltip("Distance the weapon bobs when sprinting (multiplier on WalkBobAmount)")]
+        public float SprintBobMultiplier = 1.5f;
+        
         // active keys
         private List<KeyWeaponData> m_KeyInventory = new List<KeyWeaponData>();
         private int m_CurrentKeyIndex = 0;
@@ -284,6 +297,22 @@ namespace Unity.FPS.Gameplay
                 
                 Debug.Log($"Weapon positioned at local pos {m_CurrentWeaponModel.transform.localPosition}");
                 
+                // add and configure weapon animation controller
+                var animationController = m_CurrentWeaponModel.GetComponent<KeyWeaponAnimationController>();
+                if (animationController == null)
+                {
+                    animationController = m_CurrentWeaponModel.AddComponent<KeyWeaponAnimationController>();
+                }
+                animationController.WeaponTransform = m_CurrentWeaponModel.transform;
+                animationController.PlayerController = PlayerController;
+                animationController.BaseWeaponPosition = new Vector3(0.2f, -0.15f, 0.35f);
+                
+                // Copy animation settings from KeyWeaponController
+                animationController.BobFrequency = BobFrequency;
+                animationController.BobSharpness = BobSharpness;
+                animationController.WalkBobAmount = WalkBobAmount;
+                animationController.SprintBobMultiplier = SprintBobMultiplier;
+                
                 // configure the weapon controller with key-specific stats
                 var weaponController = m_CurrentWeaponModel.GetComponent<WeaponController>();
                 if (weaponController != null)
@@ -298,6 +327,8 @@ namespace Unity.FPS.Gameplay
                     weaponController.DelayBetweenShots = m_CurrentKey.FireRate;
                     weaponController.BulletsPerShot = m_CurrentKey.ProjectilesPerShot;
                     weaponController.BulletSpreadAngle = m_CurrentKey.SpreadAngle;
+                    weaponController.MuzzleFlashScale = m_CurrentKey.MuzzleFlashScale;
+                    Debug.Log($"Set MuzzleFlashScale to {weaponController.MuzzleFlashScale} for {m_CurrentKey.KeyName}");
                     
                     // get the ProjectileBase component from the projectile GameObject
                     if (m_CurrentKey.ProjectilePrefab != null)
@@ -330,6 +361,25 @@ namespace Unity.FPS.Gameplay
                     
                     // keep automatic shooting for rapid fire
                     weaponController.ShootType = WeaponShootType.Automatic;
+                    
+                    // set up animator for shooting animations
+                    var animator = m_CurrentWeaponModel.GetComponent<Animator>();
+                    if (animator == null)
+                    {
+                        // Try to find animator in children (some weapon models might have it nested)
+                        animator = m_CurrentWeaponModel.GetComponentInChildren<Animator>();
+                    }
+                    
+                    if (animator == null)
+                    {
+                        // Add animator component if it doesn't exist
+                        animator = m_CurrentWeaponModel.AddComponent<Animator>();
+                        Debug.Log($"Added Animator component to {m_CurrentKey.KeyName} weapon model");
+                    }
+                    
+                    // Assign animator to weapon controller (this enables shooting animations)
+                    weaponController.WeaponAnimator = animator;
+                    Debug.Log($"Assigned Animator to WeaponController for {m_CurrentKey.KeyName}");
                     
                     // use standard weapon ammo/reload system (leave default values)
                     // This gives the normal weapon cooldown/reload behavior

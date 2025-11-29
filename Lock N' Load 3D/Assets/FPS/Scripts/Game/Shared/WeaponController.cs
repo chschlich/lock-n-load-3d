@@ -114,6 +114,9 @@ namespace Unity.FPS.Game
         [Tooltip("Prefab of the muzzle flash")]
         public GameObject MuzzleFlashPrefab;
 
+        [Tooltip("Scale multiplier for the muzzle flash (1 = normal size, 0.5 = half size, etc.)")]
+        public float MuzzleFlashScale = 1f;
+
         [Tooltip("Unparent the muzzle flash instance on spawn")]
         public bool UnparentMuzzleFlash;
 
@@ -457,6 +460,69 @@ namespace Unity.FPS.Game
             {
                 GameObject muzzleFlashInstance = Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position,
                     WeaponMuzzle.rotation, WeaponMuzzle.transform);
+                
+                // Scale the muzzle flash if scale is not 1
+                if (MuzzleFlashScale != 1f)
+                {
+                    // Scale the transform
+                    muzzleFlashInstance.transform.localScale = Vector3.one * MuzzleFlashScale;
+                    
+                    // Also scale particle systems if present (particle systems need their properties scaled)
+                    ParticleSystem[] particleSystems = muzzleFlashInstance.GetComponentsInChildren<ParticleSystem>();
+                    foreach (ParticleSystem ps in particleSystems)
+                    {
+                        var main = ps.main;
+                        
+                        // Handle startSize - works with both constants and curves
+                        if (main.startSize.mode == ParticleSystemCurveMode.Constant)
+                        {
+                            main.startSize = main.startSize.constant * MuzzleFlashScale;
+                        }
+                        else if (main.startSize.mode == ParticleSystemCurveMode.TwoConstants)
+                        {
+                            main.startSize = new ParticleSystem.MinMaxCurve(
+                                main.startSize.constantMin * MuzzleFlashScale,
+                                main.startSize.constantMax * MuzzleFlashScale);
+                        }
+                        else
+                        {
+                            // For curves, use multiplier
+                            main.startSizeMultiplier *= MuzzleFlashScale;
+                        }
+                        
+                        // Handle startSpeed
+                        if (main.startSpeed.mode == ParticleSystemCurveMode.Constant)
+                        {
+                            main.startSpeed = main.startSpeed.constant * MuzzleFlashScale;
+                        }
+                        else if (main.startSpeed.mode == ParticleSystemCurveMode.TwoConstants)
+                        {
+                            main.startSpeed = new ParticleSystem.MinMaxCurve(
+                                main.startSpeed.constantMin * MuzzleFlashScale,
+                                main.startSpeed.constantMax * MuzzleFlashScale);
+                        }
+                        else
+                        {
+                            main.startSpeedMultiplier *= MuzzleFlashScale;
+                        }
+                        
+                        // Scale shape module if present
+                        var shape = ps.shape;
+                        if (shape.enabled)
+                        {
+                            shape.radius *= MuzzleFlashScale;
+                            shape.scale *= MuzzleFlashScale;
+                        }
+                        
+                        // Scale emission rate
+                        var emission = ps.emission;
+                        emission.rateOverTimeMultiplier *= MuzzleFlashScale;
+                        emission.rateOverDistanceMultiplier *= MuzzleFlashScale;
+                    }
+                    
+                    Debug.Log($"Scaled muzzle flash to {MuzzleFlashScale} (found {particleSystems.Length} particle systems)");
+                }
+                
                 // Unparent the muzzleFlashInstance
                 if (UnparentMuzzleFlash)
                 {

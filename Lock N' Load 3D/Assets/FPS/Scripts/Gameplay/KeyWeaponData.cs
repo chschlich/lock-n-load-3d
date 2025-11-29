@@ -50,6 +50,11 @@ namespace Unity.FPS.Gameplay
         [Tooltip("3D model prefab for this weapon (leave null for no model)")]
         public GameObject WeaponModelPrefab;
         
+        [Header("Visual Effects")]
+        [Tooltip("Scale multiplier for the muzzle flash (1 = normal size, 0.5 = half size, etc.)")]
+        [Range(0.1f, 2f)]
+        public float MuzzleFlashScale = 1f;
+        
         [Header("Crosshair")]
         [Tooltip("Crosshair sprite (leave null to use default)")]
         public Sprite CrosshairSprite;
