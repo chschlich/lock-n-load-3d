@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63ea9c339bb2be54683ebdaf2bc830cf, type: 3}
+  m_Name: OrangeKey_Multishot
+  m_EditorClassIdentifier: 
+  KeyName: Orange Key
+  KeyColor: {r: 1, g: 0.6, b: 0.1, a: 1}
+  KeyIcon: {fileID: 0}
+  Damage: 15
+  FireRate: 0.1
+  ProjectileSpeed: 30
+  MovementSpeedMultiplier: 1
+  MovementSpeedWhileShooting: 0.7
+  ProjectilePrefab: {fileID: 3659995153115176983, guid: 3c6b27d949cdda749892906e1f1d1b27,
+    type: 3}
+  ProjectilesPerShot: 3
+  SpreadAngle: 20
+  SpecialAbility: 0
+  AbilityPower: 3
+  AbilityCooldown: 0
+  MuzzleFlashPrefab: {fileID: 0}
+  TrailColor: {r: 1, g: 0.5, b: 0, a: 1}
+  ShootSound: {fileID: 8300000, guid: 53d2238f4c4b2aa4f8e559c7af9e0126, type: 3}
+  WeaponModelPrefab: {fileID: 2225486910712267859, guid: b318fabc73446b746a1005cede0c4ceb,
+    type: 3}

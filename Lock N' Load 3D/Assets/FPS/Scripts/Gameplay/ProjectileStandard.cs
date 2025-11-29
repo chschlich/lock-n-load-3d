@@ -222,12 +222,15 @@ namespace Unity.FPS.Gameplay
 
         void OnHit(Vector3 point, Vector3 normal, Collider collider)
         {
+            bool hitEnemy = false;
+            
             // damage
             if (AreaOfDamage)
             {
                 // area damage
                 AreaOfDamage.InflictDamageInArea(Damage, point, HittableLayers, k_TriggerInteraction,
                     m_ProjectileBase.Owner);
+                hitEnemy = true; // assume area damage hit something
             }
             else
             {
@@ -236,7 +239,36 @@ namespace Unity.FPS.Gameplay
                 if (damageable)
                 {
                     damageable.InflictDamage(Damage, false, m_ProjectileBase.Owner);
+                    hitEnemy = true;
                 }
+            }
+            
+            // notify lifesteal component if we hit an enemy
+            if (hitEnemy)
+            {
+                var lifesteal = GetComponent<LifestealProjectile>();
+                if (lifesteal)
+                {
+                    lifesteal.OnEnemyHit();
+                }
+                
+                // notify burn component and pass the damageable target
+                var burn = GetComponent<BurnProjectile>();
+                if (burn && collider != null)
+                {
+                    var damageable = collider.GetComponent<Damageable>();
+                    if (damageable)
+                    {
+                        burn.OnEnemyHit(damageable);
+                    }
+                }
+            }
+            
+            // notify teleport component with hit position
+            var teleport = GetComponent<TeleportProjectile>();
+            if (teleport)
+            {
+                teleport.OnHit(point);
             }
 
             // impact vfx

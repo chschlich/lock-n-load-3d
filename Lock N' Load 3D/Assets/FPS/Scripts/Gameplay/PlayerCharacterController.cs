@@ -121,6 +121,7 @@ namespace Unity.FPS.Gameplay
         PlayerInputHandler m_InputHandler;
         CharacterController m_Controller;
         PlayerWeaponsManager m_WeaponsManager;
+        KeyWeaponController m_KeyWeaponController;
         Actor m_Actor;
         Vector3 m_GroundNormal;
         Vector3 m_CharacterVelocity;
@@ -154,6 +155,9 @@ namespace Unity.FPS.Gameplay
             m_WeaponsManager = GetComponent<PlayerWeaponsManager>();
             DebugUtility.HandleErrorIfNullGetComponent<PlayerWeaponsManager, PlayerCharacterController>(
                 m_WeaponsManager, this, gameObject);
+
+            m_KeyWeaponController = GetComponent<KeyWeaponController>();
+            // Key weapon controller is optional
 
             m_Health = GetComponent<Health>();
             DebugUtility.HandleErrorIfNullGetComponent<Health, PlayerCharacterController>(m_Health, this, gameObject);
@@ -295,6 +299,12 @@ namespace Unity.FPS.Gameplay
                 }
 
                 float speedModifier = isSprinting ? SprintSpeedModifier : 1f;
+
+                // Apply key weapon speed modifier if using key system
+                if (m_KeyWeaponController != null)
+                {
+                    speedModifier *= m_KeyWeaponController.GetCurrentMovementSpeedMultiplier();
+                }
 
                 // converts move input to a worldspace vector based on our character's transform orientation
                 Vector3 worldspaceMoveInput = transform.TransformVector(m_InputHandler.GetMoveInput());

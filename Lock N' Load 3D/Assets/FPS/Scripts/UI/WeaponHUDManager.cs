@@ -14,24 +14,67 @@ namespace Unity.FPS.UI
         public GameObject AmmoCounterPrefab;
 
         PlayerWeaponsManager m_PlayerWeaponsManager;
+        KeyWeaponController m_KeyWeaponController;
         List<AmmoCounter> m_AmmoCounters = new List<AmmoCounter>();
+        WeaponController m_CurrentWeaponController;
 
         void Start()
         {
-            m_PlayerWeaponsManager = FindFirstObjectByType<PlayerWeaponsManager>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, WeaponHUDManager>(m_PlayerWeaponsManager,
-                this);
-
-            WeaponController activeWeapon = m_PlayerWeaponsManager.GetActiveWeapon();
-            if (activeWeapon)
+            // Try to find KeyWeaponController first
+            m_KeyWeaponController = FindFirstObjectByType<KeyWeaponController>();
+            
+            if (m_KeyWeaponController != null)
             {
-                AddWeapon(activeWeapon, m_PlayerWeaponsManager.ActiveWeaponIndex);
-                ChangeWeapon(activeWeapon);
+                Debug.Log("WeaponHUDManager: Using KeyWeaponController");
+                // We'll update the weapon display each frame for key weapons
             }
+            else
+            {
+                // Fall back to PlayerWeaponsManager
+                m_PlayerWeaponsManager = FindFirstObjectByType<PlayerWeaponsManager>();
+                DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, WeaponHUDManager>(m_PlayerWeaponsManager,
+                    this);
 
-            m_PlayerWeaponsManager.OnAddedWeapon += AddWeapon;
-            m_PlayerWeaponsManager.OnRemovedWeapon += RemoveWeapon;
-            m_PlayerWeaponsManager.OnSwitchedToWeapon += ChangeWeapon;
+                WeaponController activeWeapon = m_PlayerWeaponsManager.GetActiveWeapon();
+                if (activeWeapon)
+                {
+                    AddWeapon(activeWeapon, m_PlayerWeaponsManager.ActiveWeaponIndex);
+                    ChangeWeapon(activeWeapon);
+                }
+
+                m_PlayerWeaponsManager.OnAddedWeapon += AddWeapon;
+                m_PlayerWeaponsManager.OnRemovedWeapon += RemoveWeapon;
+                m_PlayerWeaponsManager.OnSwitchedToWeapon += ChangeWeapon;
+            }
+        }
+        
+        void Update()
+        {
+            // Handle key weapon controller updates
+            if (m_KeyWeaponController != null)
+            {
+                WeaponController currentWeapon = m_KeyWeaponController.CurrentWeaponController;
+                
+                if (currentWeapon != m_CurrentWeaponController)
+                {
+                    // Weapon changed, clear all old counters
+                    foreach (var counter in m_AmmoCounters)
+                    {
+                        if (counter != null)
+                            Destroy(counter.gameObject);
+                    }
+                    m_AmmoCounters.Clear();
+                    
+                    // Add single counter for current weapon
+                    if (currentWeapon != null)
+                    {
+                        AddWeapon(currentWeapon, 0);
+                        ChangeWeapon(currentWeapon);
+                    }
+                    
+                    m_CurrentWeaponController = currentWeapon;
+                }
+            }
         }
 
         void AddWeapon(WeaponController newWeapon, int weaponIndex)

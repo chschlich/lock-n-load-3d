@@ -46,6 +46,7 @@ namespace Unity.FPS.UI
         public int WeaponCounterIndex { get; set; }
 
         PlayerWeaponsManager m_PlayerWeaponsManager;
+        KeyWeaponController m_KeyWeaponController;
         WeaponController m_Weapon;
 
         void Awake()
@@ -73,7 +74,12 @@ namespace Unity.FPS.UI
 
             Reload.gameObject.SetActive(false);
             m_PlayerWeaponsManager = FindFirstObjectByType<PlayerWeaponsManager>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, AmmoCounter>(m_PlayerWeaponsManager, this);
+            m_KeyWeaponController = FindFirstObjectByType<KeyWeaponController>();
+            
+            if (m_PlayerWeaponsManager == null && m_KeyWeaponController == null)
+            {
+                Debug.LogError("AmmoCounter: Could not find PlayerWeaponsManager or KeyWeaponController!");
+            }
 
             WeaponIndexText.text = (WeaponCounterIndex + 1).ToString();
 
@@ -88,7 +94,16 @@ namespace Unity.FPS.UI
 
             BulletCounter.text = m_Weapon.GetCarriedPhysicalBullets().ToString();
 
-            bool isActiveWeapon = m_Weapon == m_PlayerWeaponsManager.GetActiveWeapon();
+            // Check if this is the active weapon
+            bool isActiveWeapon = false;
+            if (m_KeyWeaponController != null)
+            {
+                isActiveWeapon = (m_Weapon == m_KeyWeaponController.CurrentWeaponController);
+            }
+            else if (m_PlayerWeaponsManager != null)
+            {
+                isActiveWeapon = (m_Weapon == m_PlayerWeaponsManager.GetActiveWeapon());
+            }
 
             CanvasGroup.alpha = Mathf.Lerp(CanvasGroup.alpha, isActiveWeapon ? 1f : UnselectedOpacity,
                 Time.deltaTime * 10);

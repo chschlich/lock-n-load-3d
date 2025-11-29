@@ -79,6 +79,13 @@ namespace Unity.FPS.AI
             switch (AiState)
             {
                 case AIState.Attack:
+                    // Check if target still exists
+                    if (m_EnemyController.KnownDetectedTarget == null)
+                    {
+                        AiState = AIState.Idle;
+                        return;
+                    }
+                    
                     bool mustShoot = Time.time > m_TimeStartedDetection + DetectionFireDelay;
                     // Calculate the desired rotation of our turret (aim at target)
                     Vector3 directionToTarget =
