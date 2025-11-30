@@ -17,10 +17,10 @@ MonoBehaviour:
   KeyIcon: {fileID: 0}
   Damage: 30
   FireRate: 0.15
-  ProjectileSpeed: 35
+  ProjectileSpeed: 60
   MovementSpeedMultiplier: 1.25
   MovementSpeedWhileShooting: 0.9
-  ProjectilePrefab: {fileID: 3659995153115176983, guid: 3c6b27d949cdda749892906e1f1d1b27,
+  ProjectilePrefab: {fileID: 3659995153115176983, guid: 86cde191c81fe3547b46347ac42aefb8,
     type: 3}
   ProjectilesPerShot: 1
   SpreadAngle: 0
@@ -28,6 +28,7 @@ MonoBehaviour:
   AbilityPower: 1.25
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: 90ec0795af389734da4f5f9bb566e394,
     type: 3}
+  MuzzleFlashScale: 1
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}

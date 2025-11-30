@@ -120,6 +120,9 @@ namespace Unity.FPS.Game
         [Tooltip("Unparent the muzzle flash instance on spawn")]
         public bool UnparentMuzzleFlash;
 
+        [Tooltip("Optional muzzle explosion effect GameObject (child of weapon prefab - plays on fire, e.g. for purple key)")]
+        public GameObject MuzzleExplosionEffect;
+
         [Tooltip("sound played when shooting")]
         public AudioClip ShootSfx;
 
@@ -530,6 +533,40 @@ namespace Unity.FPS.Game
                 }
 
                 Destroy(muzzleFlashInstance, 2f);
+            }
+
+            // Muzzle explosion effect (for purple key, etc.)
+            if (MuzzleExplosionEffect != null)
+            {
+                // Ensure the MuzzleExplosionEffect GameObject and all parents are active
+                if (!MuzzleExplosionEffect.activeInHierarchy)
+                {
+                    MuzzleExplosionEffect.SetActive(true);
+                    Transform current = MuzzleExplosionEffect.transform;
+                    while (current != null && !current.gameObject.activeInHierarchy)
+                    {
+                        current.gameObject.SetActive(true);
+                        current = current.parent;
+                    }
+                }
+                
+                // Play ParticleSystem if present
+                ParticleSystem[] particleSystems = MuzzleExplosionEffect.GetComponentsInChildren<ParticleSystem>(true);
+                foreach (ParticleSystem ps in particleSystems)
+                {
+                    // Stop and clear first to ensure burst replays from beginning
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    ps.Play();
+                    ps.Emit(10);
+                }
+                
+                // Play VisualEffect (VFX Graph) if present
+                UnityEngine.VFX.VisualEffect[] visualEffects = MuzzleExplosionEffect.GetComponentsInChildren<UnityEngine.VFX.VisualEffect>(true);
+                foreach (var vfx in visualEffects)
+                {
+                    vfx.Stop();
+                    vfx.Play();
+                }
             }
 
             if (HasPhysicalBullets)

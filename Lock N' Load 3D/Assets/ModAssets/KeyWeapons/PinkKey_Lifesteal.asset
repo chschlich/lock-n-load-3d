@@ -17,10 +17,10 @@ MonoBehaviour:
   KeyIcon: {fileID: 0}
   Damage: 35
   FireRate: 0.3
-  ProjectileSpeed: 30
+  ProjectileSpeed: 35
   MovementSpeedMultiplier: 1
   MovementSpeedWhileShooting: 0.7
-  ProjectilePrefab: {fileID: 3659995153115176983, guid: d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2,
+  ProjectilePrefab: {fileID: 3659995153115176983, guid: b065b98f55c498744a25f4402e93f751,
     type: 3}
   ProjectilesPerShot: 1
   SpreadAngle: 0

@@ -23,7 +23,7 @@ namespace Unity.FPS.Gameplay
         [Header("Player Movement")]
         public PlayerCharacterController PlayerController;
         
-        [Header("Weapon Animation Settings")]
+        [Header("Weapon Bob Animation Settings")]
         [Tooltip("Frequency at which the weapon will move around when the player is moving")]
         public float BobFrequency = 10f;
         
@@ -36,12 +36,35 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Distance the weapon bobs when sprinting (multiplier on WalkBobAmount)")]
         public float SprintBobMultiplier = 1.5f;
         
+        [Header("Weapon Recoil Settings")]
+        [Tooltip("This will affect how fast the recoil moves the weapon, the bigger the value, the fastest")]
+        public float RecoilSharpness = 50f;
+        
+        [Tooltip("Maximum distance the recoil can affect the weapon")]
+        public float MaxRecoilDistance = 0.5f;
+        
+        [Tooltip("How fast the weapon goes back to its original position after the recoil is finished")]
+        public float RecoilRestitutionSharpness = 10f;
+        
+        [Header("Weapon Aiming Settings")]
+        [Tooltip("Speed at which the aiming animation is played")]
+        public float AimingAnimationSpeed = 10f;
+        
+        [Tooltip("Position offset when aiming down sights")]
+        public Vector3 AimOffset = new Vector3(0f, 0f, 0.1f);
+        
+        [Tooltip("FOV ratio when aiming (0.5 = half FOV)")]
+        [Range(0f, 1f)]
+        public float AimZoomRatio = 0.8f;
+        
         // active keys
         private List<KeyWeaponData> m_KeyInventory = new List<KeyWeaponData>();
         private int m_CurrentKeyIndex = 0;
         private KeyWeaponData m_CurrentKey;
         private GameObject m_CurrentWeaponModel;
         private WeaponController m_CurrentWeaponController;
+        private KeyWeaponShooterAnimation m_CurrentShooterAnimation;
+        private KeyWeaponAnimationController m_CurrentAnimationController;
         
         // shooting state
         private HashSet<GameObject> m_ProcessedProjectiles = new HashSet<GameObject>();
@@ -217,8 +240,15 @@ namespace Unity.FPS.Gameplay
             bool fireHeld = m_FireAction != null && m_FireAction.IsPressed();
             bool fireUp = m_FireAction != null && m_FireAction.WasReleasedThisFrame();
             
-            // let the WeaponController handle all shooting logic (animations, recoil, muzzle flash, etc.)
-            m_CurrentWeaponController.HandleShootInputs(fireDown, fireHeld, fireUp);
+            // Let the WeaponController handle shooting logic
+            // Check return value to know if we actually fired (same pattern as PlayerWeaponsManager)
+            bool hasFired = m_CurrentWeaponController.HandleShootInputs(fireDown, fireHeld, fireUp);
+            
+            // Handle recoil accumulation directly (like PlayerWeaponsManager does)
+            if (hasFired && m_CurrentShooterAnimation != null)
+            {
+                m_CurrentShooterAnimation.AccumulateRecoil(m_CurrentWeaponController.RecoilForce);
+            }
         }
         
         void ApplyProjectileAbility(GameObject projectile)
@@ -288,7 +318,7 @@ namespace Unity.FPS.Gameplay
                 Debug.Log($"Instantiating weapon model prefab: {m_CurrentKey.WeaponModelPrefab.name}");
                 m_CurrentWeaponModel = Instantiate(m_CurrentKey.WeaponModelPrefab, WeaponRoot);
                 
-                // position weapon in front of camera
+                // Position weapon in front of camera
                 m_CurrentWeaponModel.transform.localPosition = new Vector3(0.2f, -0.15f, 0.35f);
                 m_CurrentWeaponModel.transform.localRotation = Quaternion.identity;
                 m_CurrentWeaponModel.transform.localScale = Vector3.one;
@@ -297,7 +327,7 @@ namespace Unity.FPS.Gameplay
                 
                 Debug.Log($"Weapon positioned at local pos {m_CurrentWeaponModel.transform.localPosition}");
                 
-                // add and configure weapon animation controller
+                // Add and configure weapon animation controller
                 var animationController = m_CurrentWeaponModel.GetComponent<KeyWeaponAnimationController>();
                 if (animationController == null)
                 {
@@ -307,11 +337,35 @@ namespace Unity.FPS.Gameplay
                 animationController.PlayerController = PlayerController;
                 animationController.BaseWeaponPosition = new Vector3(0.2f, -0.15f, 0.35f);
                 
-                // Copy animation settings from KeyWeaponController
+                // Copy bob animation settings from KeyWeaponController
                 animationController.BobFrequency = BobFrequency;
                 animationController.BobSharpness = BobSharpness;
                 animationController.WalkBobAmount = WalkBobAmount;
                 animationController.SprintBobMultiplier = SprintBobMultiplier;
+                
+                // Add and configure shooter animation controller (recoil + aiming)
+                var shooterAnimation = m_CurrentWeaponModel.GetComponent<KeyWeaponShooterAnimation>();
+                if (shooterAnimation == null)
+                {
+                    shooterAnimation = m_CurrentWeaponModel.AddComponent<KeyWeaponShooterAnimation>();
+                }
+                
+                // Copy recoil settings from KeyWeaponController
+                shooterAnimation.RecoilSharpness = RecoilSharpness;
+                shooterAnimation.MaxRecoilDistance = MaxRecoilDistance;
+                shooterAnimation.RecoilRestitutionSharpness = RecoilRestitutionSharpness;
+                
+                // Copy aiming settings from KeyWeaponController
+                shooterAnimation.AimingAnimationSpeed = AimingAnimationSpeed;
+                shooterAnimation.AimOffset = AimOffset;
+                shooterAnimation.AimZoomRatio = AimZoomRatio;
+                
+                // Link shooter animation to animation controller
+                animationController.ShooterAnimation = shooterAnimation;
+                
+                // Store references for animation and recoil
+                m_CurrentShooterAnimation = shooterAnimation;
+                m_CurrentAnimationController = animationController;
                 
                 // configure the weapon controller with key-specific stats
                 var weaponController = m_CurrentWeaponModel.GetComponent<WeaponController>();
@@ -328,6 +382,7 @@ namespace Unity.FPS.Gameplay
                     weaponController.BulletsPerShot = m_CurrentKey.ProjectilesPerShot;
                     weaponController.BulletSpreadAngle = m_CurrentKey.SpreadAngle;
                     weaponController.MuzzleFlashScale = m_CurrentKey.MuzzleFlashScale;
+                    // ProjectileSpeed is set per-prefab in Inspector, not at runtime
                     Debug.Log($"Set MuzzleFlashScale to {weaponController.MuzzleFlashScale} for {m_CurrentKey.KeyName}");
                     
                     // get the ProjectileBase component from the projectile GameObject
@@ -379,12 +434,6 @@ namespace Unity.FPS.Gameplay
                     
                     // Assign animator to weapon controller (this enables shooting animations)
                     weaponController.WeaponAnimator = animator;
-                    Debug.Log($"Assigned Animator to WeaponController for {m_CurrentKey.KeyName}");
-                    
-                    // use standard weapon ammo/reload system (leave default values)
-                    // This gives the normal weapon cooldown/reload behavior
-                    
-                    Debug.Log($"WeaponController configured: FireRate={weaponController.DelayBetweenShots}, Projectile={weaponController.ProjectilePrefab?.name}");
                 }
                 else
                 {
@@ -392,13 +441,40 @@ namespace Unity.FPS.Gameplay
                 }
                 
                 // make sure all renderers are on the correct layer
-                var renderers = m_CurrentWeaponModel.GetComponentsInChildren<Renderer>();
+                var renderers = m_CurrentWeaponModel.GetComponentsInChildren<Renderer>(true);
                 Debug.Log($"Found {renderers.Length} renderers in weapon model");
                 foreach (var renderer in renderers)
                 {
                     renderer.enabled = true;
                     renderer.gameObject.layer = 10; // weapon layer for WeaponCamera
-                    Debug.Log($"  Renderer: {renderer.name}, enabled: {renderer.enabled}, layer: {renderer.gameObject.layer}");
+                }
+                
+                // Find and configure MuzzleExplosionEffect - the prefab reference doesn't work after instantiation
+                // so we need to find the child by looking for particle systems
+                if (weaponController != null)
+                {
+                    // Look for any child with "MuzzleExplosion" or "Muzzle" in the name that has a ParticleSystem
+                    Transform[] allChildren = m_CurrentWeaponModel.GetComponentsInChildren<Transform>(true);
+                    foreach (Transform child in allChildren)
+                    {
+                        if (child.name.Contains("MuzzleExplosion") || child.name.Contains("VFX_Muzzle"))
+                        {
+                            ParticleSystem ps = child.GetComponent<ParticleSystem>();
+                            if (ps != null)
+                            {
+                                // Found the muzzle explosion effect - assign it
+                                weaponController.MuzzleExplosionEffect = child.gameObject;
+                                
+                                // Set correct layer for weapon camera
+                                child.gameObject.layer = 10;
+                                
+                                // Make sure it's active
+                                child.gameObject.SetActive(true);
+                                
+                                break;
+                            }
+                        }
+                    }
                 }
                 
                 Debug.Log($"Equipped weapon model for {m_CurrentKey.KeyName}: {m_CurrentWeaponModel.name} at world pos {m_CurrentWeaponModel.transform.position}, local pos {m_CurrentWeaponModel.transform.localPosition}, active: {m_CurrentWeaponModel.activeSelf}");

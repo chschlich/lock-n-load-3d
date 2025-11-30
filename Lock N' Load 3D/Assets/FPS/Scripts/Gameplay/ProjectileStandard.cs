@@ -59,6 +59,15 @@ namespace Unity.FPS.Gameplay
         Vector3 m_LastRootPosition;
         Vector3 m_Velocity;
         bool m_HasTrajectoryOverride;
+        
+        /// <summary>
+        /// Allows external scripts to update the projectile's velocity direction.
+        /// Used by KeyProjectileAimCorrection to redirect projectiles towards crosshair.
+        /// </summary>
+        public void SetVelocityDirection(Vector3 direction)
+        {
+            m_Velocity = direction.normalized * Speed;
+        }
         float m_ShootTime;
         Vector3 m_TrajectoryCorrectionVector;
         Vector3 m_ConsumedTrajectoryCorrectionVector;
@@ -75,6 +84,14 @@ namespace Unity.FPS.Gameplay
             m_ProjectileBase.OnShoot += OnShoot;
 
             Destroy(gameObject, MaxLifeTime);
+        }
+
+        void OnDisable()
+        {
+            if (m_ProjectileBase != null)
+            {
+                m_ProjectileBase.OnShoot -= OnShoot;
+            }
         }
 
         new void OnShoot()
@@ -283,6 +300,21 @@ namespace Unity.FPS.Gameplay
             {
                 GameObject impactVfxInstance = Instantiate(ImpactVfx, point + (normal * ImpactVfxSpawnOffset),
                     Quaternion.LookRotation(normal));
+                
+                // Explicitly play all particle systems (in case playOnAwake is disabled)
+                ParticleSystem[] particleSystems = impactVfxInstance.GetComponentsInChildren<ParticleSystem>();
+                foreach (ParticleSystem ps in particleSystems)
+                {
+                    ps.Play();
+                }
+                
+                // Also play any VFX Graph effects
+                UnityEngine.VFX.VisualEffect[] visualEffects = impactVfxInstance.GetComponentsInChildren<UnityEngine.VFX.VisualEffect>();
+                foreach (var vfx in visualEffects)
+                {
+                    vfx.Play();
+                }
+                
                 if (ImpactVfxLifetime > 0)
                 {
                     Destroy(impactVfxInstance.gameObject, ImpactVfxLifetime);

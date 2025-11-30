@@ -5,6 +5,7 @@ namespace Unity.FPS.Gameplay
     /// <summary>
     /// Handles weapon movement animation for key weapons.
     /// Based on the proven PlayerWeaponsManager bob system, adapted for key weapons.
+    /// Combines bob, recoil, and aiming offsets.
     /// </summary>
     public class KeyWeaponAnimationController : MonoBehaviour
     {
@@ -22,11 +23,14 @@ namespace Unity.FPS.Gameplay
         public float SprintBobMultiplier = 1.5f;
         
         [Header("References")]
-        [Tooltip("The weapon transform to animate (assigned automatically)")]
+        [Tooltip("The weapon transform to animate")]
         public Transform WeaponTransform;
         
         [Tooltip("Reference to player controller")]
         public PlayerCharacterController PlayerController;
+        
+        [Tooltip("Reference to shooter animation controller for recoil/aim offsets")]
+        public KeyWeaponShooterAnimation ShooterAnimation;
         
         [Tooltip("Base position offset for the weapon (rest position)")]
         public Vector3 BaseWeaponPosition = new Vector3(0.2f, -0.15f, 0.35f);
@@ -65,23 +69,36 @@ namespace Unity.FPS.Gameplay
         {
             UpdateWeaponMovementAnimation();
             
-            // Apply movement offset to weapon position
+            // Update shooter animation (aiming, recoil)
+            if (ShooterAnimation != null)
+            {
+                ShooterAnimation.UpdateAnimations();
+            }
+            
+            // Apply all animation offsets to weapon position
             if (WeaponTransform != null)
             {
-                WeaponTransform.localPosition = BaseWeaponPosition + m_CurrentWeaponBobOffset;
+                Vector3 finalPosition = BaseWeaponPosition + m_CurrentWeaponBobOffset;
+                
+                if (ShooterAnimation != null)
+                {
+                    finalPosition += ShooterAnimation.RecoilOffset;
+                    finalPosition += ShooterAnimation.AimingPositionOffset;
+                }
+                
+                WeaponTransform.localPosition = finalPosition;
             }
         }
         
         /// <summary>
         /// Updates the weapon bob animation based on character movement
-        /// Based on PlayerWeaponsManager.UpdateWeaponBob() - proven stable implementation
         /// </summary>
         void UpdateWeaponMovementAnimation()
         {
             if (PlayerController == null || Time.deltaTime <= 0f)
                 return;
             
-            // Calculate player velocity from position delta (same as PlayerWeaponsManager)
+            // Calculate player velocity from position delta
             Vector3 playerCharacterVelocity =
                 (PlayerController.transform.position - m_LastCharacterPosition) / Time.deltaTime;
             
@@ -89,32 +106,27 @@ namespace Unity.FPS.Gameplay
             float characterMovementFactor = 0f;
             if (PlayerController.IsGrounded)
             {
-                // Calculate max speed (assumes max sprint speed, like PlayerWeaponsManager)
                 float maxSpeed = PlayerController.MaxSpeedOnGround * PlayerController.SprintSpeedModifier;
                 
-                // Apply key weapon speed modifier if available
                 KeyWeaponController keyWeaponController = PlayerController.GetComponent<KeyWeaponController>();
                 if (keyWeaponController != null)
                 {
                     maxSpeed *= keyWeaponController.GetCurrentMovementSpeedMultiplier();
                 }
                 
-                // Calculate movement factor (0 = stopped, 1 = max sprint speed)
-                // This naturally handles sprint intensity - faster movement = higher factor
                 characterMovementFactor = Mathf.Clamp01(playerCharacterVelocity.magnitude / maxSpeed);
             }
             
-            // Smoothly interpolate bob factor (same as PlayerWeaponsManager)
+            // Smoothly interpolate bob factor
             m_WeaponBobFactor = Mathf.Lerp(m_WeaponBobFactor, characterMovementFactor, 
                 BobSharpness * Time.deltaTime);
             
-            // Calculate bob amount - apply sprint multiplier based on movement factor
-            // Higher movement factor (closer to sprint speed) = more sprint multiplier influence
-            float sprintInfluence = characterMovementFactor; // 0 = walk, 1 = max sprint
+            // Calculate bob amount
+            float sprintInfluence = characterMovementFactor;
             float bobMultiplier = Mathf.Lerp(1f, SprintBobMultiplier, sprintInfluence);
             float currentBobAmount = WalkBobAmount * bobMultiplier;
             
-            // Calculate vertical and horizontal weapon bob values based on sine function
+            // Calculate vertical and horizontal weapon bob values
             float frequency = BobFrequency;
             float hBobValue = Mathf.Sin(Time.time * frequency) * currentBobAmount * m_WeaponBobFactor;
             float vBobValue = ((Mathf.Sin(Time.time * frequency * 2f) * 0.5f) + 0.5f) * currentBobAmount * m_WeaponBobFactor;
