@@ -13,28 +13,22 @@ namespace Unity.FPS.Gameplay
         
         void Start()
         {
-            Debug.Log($"LifestealProjectile: Started with HealAmount={HealAmount}, Player={Player?.name ?? "NULL"}");
         }
         
         public void OnEnemyHit()
         {
             m_HitEnemy = true;
-            Debug.Log("LifestealProjectile: Enemy hit confirmed!");
         }
         
         void OnDestroy()
         {
-            Debug.Log($"LifestealProjectile: OnDestroy - hit enemy = {m_HitEnemy}");
-            
             // only heal if we hit an enemy
             if (m_HitEnemy && Player != null && gameObject.scene.isLoaded)
             {
                 var health = Player.GetComponent<Health>();
                 if (health)
                 {
-                    float currentHealth = health.CurrentHealth;
                     health.Heal(HealAmount);
-                    Debug.Log($"Lifesteal: Healed {HealAmount} HP (was {currentHealth}, now {health.CurrentHealth})");
                 }
             }
         }

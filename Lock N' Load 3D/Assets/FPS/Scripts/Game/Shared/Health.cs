@@ -23,7 +23,7 @@ namespace Unity.FPS.Game
 
         bool m_IsDead;
 
-        void Start()
+        void Awake()
         {
             CurrentHealth = MaxHealth;
         }
