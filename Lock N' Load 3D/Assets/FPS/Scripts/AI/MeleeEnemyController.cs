@@ -19,7 +19,7 @@ namespace Unity.FPS.AI
         public float MoveSpeed = 3.5f;
 
         [Tooltip("Patrol movement speed")]
-        public float PatrolSpeed = 2f;
+        public float PatrolSpeed = 3f;
 
         [Tooltip("How close to get before stopping")]
         public float StoppingDistance = 0.8f;
@@ -51,7 +51,6 @@ namespace Unity.FPS.AI
             m_ActorsManager = FindAnyObjectByType<ActorsManager>();
             m_EnemyManager = FindAnyObjectByType<EnemyManager>();
 
-            m_NavMeshAgent.speed = MoveSpeed;
 
             // register with enemymanager for objective tracking
             if (m_EnemyManager != null)
@@ -129,7 +128,6 @@ namespace Unity.FPS.AI
 
             // always keep moving toward target, never stop
             m_NavMeshAgent.isStopped = false;
-            m_NavMeshAgent.speed = MoveSpeed;
             m_NavMeshAgent.SetDestination(m_Target.transform.position);
         }
 
