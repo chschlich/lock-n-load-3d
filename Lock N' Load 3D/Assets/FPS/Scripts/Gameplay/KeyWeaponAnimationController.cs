@@ -32,6 +32,12 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Reference to shooter animation controller for recoil/aim offsets")]
         public KeyWeaponShooterAnimation ShooterAnimation;
         
+        [Tooltip("Reference to weapon switch animation controller")]
+        public KeyWeaponSwitchAnimation SwitchAnimation;
+        
+        [Tooltip("Reference to weapon overheat behavior")]
+        public KeyWeaponOverheatBehavior OverheatBehavior;
+        
         [Tooltip("Base position offset for the weapon (rest position)")]
         public Vector3 BaseWeaponPosition = new Vector3(0.2f, -0.15f, 0.35f);
         
@@ -79,6 +85,7 @@ namespace Unity.FPS.Gameplay
             if (WeaponTransform != null)
             {
                 Vector3 finalPosition = BaseWeaponPosition + m_CurrentWeaponBobOffset;
+                Quaternion finalRotation = Quaternion.identity;
                 
                 if (ShooterAnimation != null)
                 {
@@ -86,7 +93,22 @@ namespace Unity.FPS.Gameplay
                     finalPosition += ShooterAnimation.AimingPositionOffset;
                 }
                 
+                // Apply switch animation offset (put-away/pull-out)
+                if (SwitchAnimation != null)
+                {
+                    finalPosition += SwitchAnimation.SwitchPositionOffset;
+                    finalRotation = SwitchAnimation.SwitchRotationOffset;
+                }
+                
+                // Apply overheat animation offset (lift weapon when overheated)
+                if (OverheatBehavior != null)
+                {
+                    finalPosition += OverheatBehavior.OverheatPositionOffset;
+                    finalRotation = finalRotation * OverheatBehavior.OverheatRotationOffset;
+                }
+                
                 WeaponTransform.localPosition = finalPosition;
+                WeaponTransform.localRotation = finalRotation;
             }
         }
         
@@ -138,6 +160,50 @@ namespace Unity.FPS.Gameplay
             
             // Update last position for next frame
             m_LastCharacterPosition = PlayerController.transform.position;
+        }
+        
+        /// <summary>
+        /// Forces immediate position update including aiming offset.
+        /// Call before spawning effects at muzzle to ensure correct position during aim.
+        /// </summary>
+        public void ForceUpdatePosition()
+        {
+            // Snap aim to target FIRST to ensure position matches visual state
+            if (ShooterAnimation != null)
+            {
+                ShooterAnimation.SnapAimToTarget();
+                ShooterAnimation.UpdateAnimations();
+            }
+            
+            // Apply position with current aiming offset
+            if (WeaponTransform != null)
+            {
+                Vector3 finalPosition = BaseWeaponPosition + m_CurrentWeaponBobOffset;
+                Quaternion finalRotation = Quaternion.identity;
+                
+                if (ShooterAnimation != null)
+                {
+                    finalPosition += ShooterAnimation.RecoilOffset;
+                    finalPosition += ShooterAnimation.AimingPositionOffset;
+                }
+                
+                // Apply switch animation offset
+                if (SwitchAnimation != null)
+                {
+                    finalPosition += SwitchAnimation.SwitchPositionOffset;
+                    finalRotation = SwitchAnimation.SwitchRotationOffset;
+                }
+                
+                // Apply overheat animation offset
+                if (OverheatBehavior != null)
+                {
+                    finalPosition += OverheatBehavior.OverheatPositionOffset;
+                    finalRotation = finalRotation * OverheatBehavior.OverheatRotationOffset;
+                }
+                
+                WeaponTransform.localPosition = finalPosition;
+                WeaponTransform.localRotation = finalRotation;
+            }
         }
     }
 }

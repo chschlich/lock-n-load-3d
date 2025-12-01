@@ -66,28 +66,83 @@ namespace Unity.FPS.UI
         {
             m_Weapon = weapon;
             WeaponCounterIndex = weaponIndex;
-            WeaponImage.sprite = weapon.WeaponIcon;
+            
+            // Find managers first
+            m_PlayerWeaponsManager = FindFirstObjectByType<PlayerWeaponsManager>();
+            m_KeyWeaponController = FindFirstObjectByType<KeyWeaponController>();
+            
+            // Set weapon icon - use custom UI icon for key weapons if available
+            Sprite iconToUse = weapon.WeaponIcon;
+            bool isKeyWeapon = false;
+            if (m_KeyWeaponController != null)
+            {
+                // Check if this weapon has a corresponding KeyWeaponData with custom UI icon
+                KeyWeaponData keyData = m_KeyWeaponController.CurrentKey;
+                if (keyData != null && keyData.WeaponUIIcon != null)
+                {
+                    iconToUse = keyData.WeaponUIIcon;
+                    isKeyWeapon = true;
+                }
+            }
+            WeaponImage.sprite = iconToUse;
+            
+            // Adjust positioning and scale for key weapon icons to fit better on the bar
+            if (WeaponImage != null)
+            {
+                RectTransform imageRect = WeaponImage.GetComponent<RectTransform>();
+                if (imageRect != null)
+                {
+                    // Reset to normal orientation (no flip)
+                    Vector3 scale = imageRect.localScale;
+                    scale.x = 1f;
+                    imageRect.localScale = scale;
+                    
+                    // Adjust size for key weapons to fit better on the UI bar
+                    if (isKeyWeapon)
+                    {
+                        // Reduce size slightly to ensure it fits within the bar
+                        imageRect.localScale = Vector3.one * 0.85f;
+                    }
+                }
+            }
+            
             if (!weapon.HasPhysicalBullets)
                 BulletCounter.transform.parent.gameObject.SetActive(false);
             else
                 BulletCounter.text = weapon.GetCarriedPhysicalBullets().ToString();
 
             Reload.gameObject.SetActive(false);
-            m_PlayerWeaponsManager = FindFirstObjectByType<PlayerWeaponsManager>();
-            m_KeyWeaponController = FindFirstObjectByType<KeyWeaponController>();
             
             if (m_PlayerWeaponsManager == null && m_KeyWeaponController == null)
             {
                 Debug.LogError("AmmoCounter: Could not find PlayerWeaponsManager or KeyWeaponController!");
             }
 
-            WeaponIndexText.text = (WeaponCounterIndex + 1).ToString();
+            // Only show weapon index for standard weapons, not key weapons
+            if (m_KeyWeaponController != null)
+            {
+                // Hide weapon index text for key weapons (they use a different UI)
+                if (WeaponIndexText != null)
+                    WeaponIndexText.gameObject.SetActive(false);
+                
+                // Hide control keys root for key weapons (prevents black box flash on switch)
+                if (ControlKeysRoot != null)
+                    ControlKeysRoot.SetActive(false);
+            }
+            else if (WeaponIndexText != null)
+            {
+                WeaponIndexText.text = (WeaponCounterIndex + 1).ToString();
+            }
 
             FillBarColorChange.Initialize(1f, m_Weapon.GetAmmoNeededToShoot());
         }
 
         void Update()
         {
+            // Safety check - weapon may be destroyed during switch animation
+            if (m_Weapon == null)
+                return;
+            
             float currenFillRatio = m_Weapon.CurrentAmmoRatio;
             AmmoFillImage.fillAmount = Mathf.Lerp(AmmoFillImage.fillAmount, currenFillRatio,
                 Time.deltaTime * AmmoFillMovementSharpness);
@@ -109,7 +164,12 @@ namespace Unity.FPS.UI
                 Time.deltaTime * 10);
             transform.localScale = Vector3.Lerp(transform.localScale, isActiveWeapon ? Vector3.one : UnselectedScale,
                 Time.deltaTime * 10);
-            ControlKeysRoot.SetActive(!isActiveWeapon);
+            
+            // Only toggle ControlKeysRoot for standard weapons, not key weapons
+            if (m_KeyWeaponController == null && ControlKeysRoot != null)
+            {
+                ControlKeysRoot.SetActive(!isActiveWeapon);
+            }
 
             FillBarColorChange.UpdateVisual(currenFillRatio);
 

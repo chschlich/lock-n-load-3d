@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   KeyName: Red Key
   KeyColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
-  KeyIcon: {fileID: 0}
+  KeyIcon: {fileID: 21300000, guid: 13b440c7744fee84e9e97d36d2c9cda3, type: 3}
+  KeyIconGlow: {fileID: 21300000, guid: d59c1659643a7ec43b69dda930e97a81, type: 3}
   Damage: 40
   FireRate: 1
   ProjectileSpeed: 30
@@ -29,6 +30,7 @@ MonoBehaviour:
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: 821c08c28942a0b4db9173abf311fe27,
     type: 3}
   MuzzleFlashScale: 0.8
+  WeaponUIIcon: {fileID: 21300000, guid: d700711cd5030894da8736dcd9ab3b20, type: 3}
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}

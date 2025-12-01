@@ -321,9 +321,22 @@ namespace Unity.FPS.Gameplay
                 }
             }
 
-            // impact sfx
-            if (ImpactSfxClip)
+            // impact sfx - check for KeyProjectileAudio first (key weapons use this)
+            var keyAudio = GetComponent<KeyProjectileAudio>();
+            if (keyAudio != null)
             {
+                // Play key weapon's configured impact sound
+                keyAudio.PlayImpactSound(point);
+                
+                // Only play default ImpactSfxClip if key audio doesn't have its own impact clip
+                if (keyAudio.GetImpactClip() == null && ImpactSfxClip)
+                {
+                    AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 3f);
+                }
+            }
+            else if (ImpactSfxClip)
+            {
+                // Standard projectile - use default impact sound
                 AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 3f);
             }
 

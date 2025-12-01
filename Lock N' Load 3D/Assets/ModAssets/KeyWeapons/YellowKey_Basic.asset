@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   KeyName: Yellow Key
   KeyColor: {r: 1, g: 0.92, b: 0.016, a: 1}
-  KeyIcon: {fileID: 0}
+  KeyIcon: {fileID: 21300000, guid: 571b614248e7b1542ab5a5ed43acaff4, type: 3}
+  KeyIconGlow: {fileID: 21300000, guid: f22b1280701db3445a9fe0c02c2b8410, type: 3}
   Damage: 30
   FireRate: 0.15
   ProjectileSpeed: 60
@@ -29,6 +30,7 @@ MonoBehaviour:
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: 90ec0795af389734da4f5f9bb566e394,
     type: 3}
   MuzzleFlashScale: 1
+  WeaponUIIcon: {fileID: 21300000, guid: 5204a528fdb6bc14f808780c6d322f85, type: 3}
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}

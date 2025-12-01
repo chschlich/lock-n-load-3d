@@ -120,6 +120,16 @@ namespace Unity.FPS.Gameplay
         public float ExplosionDamage = 20f;
         public GameObject ExplosionEffectPrefab;
         
+        [Header("Screen Shake")]
+        [Tooltip("Maximum distance from explosion that can cause screen shake")]
+        public float MaxShakeDistance = 10f;
+        
+        [Tooltip("Base shake intensity at explosion center")]
+        public float ShakeIntensity = 0.3f;
+        
+        [Tooltip("Duration of the shake effect in seconds")]
+        public float ShakeDuration = 0.2f;
+        
         void OnDestroy()
         {
             if (gameObject.scene.isLoaded) // only explode if not scene unload
@@ -148,7 +158,32 @@ namespace Unity.FPS.Gameplay
                 Instantiate(ExplosionEffectPrefab, transform.position, Quaternion.identity);
             }
             
-            Debug.Log($"Explosion at {transform.position} - Radius: {ExplosionRadius}");
+            // Apply screenshake to the player who fired this projectile
+            ApplyScreenShake();
+        }
+        
+        void ApplyScreenShake()
+        {
+            // Get the projectile owner (player who fired it)
+            var projectileBase = GetComponent<ProjectileBase>();
+            if (projectileBase == null || projectileBase.Owner == null) return;
+            
+            // Get the player's camera
+            var playerController = projectileBase.Owner.GetComponent<PlayerCharacterController>();
+            if (playerController == null || playerController.PlayerCamera == null) return;
+            
+            // Calculate distance from explosion to player
+            float distance = Vector3.Distance(transform.position, projectileBase.Owner.transform.position);
+            
+            // Only shake if within range
+            if (distance > MaxShakeDistance) return;
+            
+            // Simple falloff: at distance 0 = full intensity, at MaxShakeDistance = 0 intensity
+            float falloff = 1f - (distance / MaxShakeDistance);
+            float scaledIntensity = ShakeIntensity * falloff * falloff; // Squared falloff for more dramatic drop
+            
+            // Apply the shake
+            CameraShake.ApplyShake(playerController.PlayerCamera, scaledIntensity, ShakeDuration);
         }
     }
     

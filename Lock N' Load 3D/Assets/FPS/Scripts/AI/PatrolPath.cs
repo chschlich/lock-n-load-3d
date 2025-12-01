@@ -15,7 +15,10 @@ namespace Unity.FPS.AI
         {
             foreach (var enemy in EnemiesToAssign)
             {
-                enemy.PatrolPath = this;
+                if (enemy != null)
+                {
+                    enemy.PatrolPath = this;
+                }
             }
         }
 

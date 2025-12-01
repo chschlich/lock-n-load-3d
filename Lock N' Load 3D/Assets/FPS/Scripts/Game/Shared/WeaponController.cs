@@ -160,6 +160,17 @@ namespace Unity.FPS.Game
 
         public int GetCarriedPhysicalBullets() => m_CarriedPhysicalBullets;
         public int GetCurrentAmmo() => Mathf.FloorToInt(m_CurrentAmmo);
+        
+        /// <summary>
+        /// Set the current ammo ratio for UI display only (used by overheat system)
+        /// Does NOT affect actual m_CurrentAmmo to avoid blocking shooting
+        /// </summary>
+        public void SetAmmoRatio(float ratio)
+        {
+            // Only update the UI ratio, NOT the actual ammo count
+            // This prevents the overheat heat level from blocking weapon firing
+            CurrentAmmoRatio = Mathf.Clamp01(ratio);
+        }
 
         AudioSource m_ShootAudioSource;
 
@@ -443,8 +454,30 @@ namespace Unity.FPS.Game
             return false;
         }
 
+        /// <summary>
+        /// Optional callback invoked right before spawning projectiles/effects.
+        /// Used by key weapons to force animation update for correct muzzle position during aim.
+        /// </summary>
+        public System.Action OnBeforeShoot;
+        
+        /// <summary>
+        /// Optional: Returns the aim position offset to apply when spawning effects.
+        /// Used by key weapons to account for aim animation offset.
+        /// </summary>
+        public System.Func<Vector3> GetAimOffset;
+        
         void HandleShoot()
         {
+            // CRITICAL: Invoke callback to update weapon position before spawning effects
+            // This ensures the muzzle position is correct during aim animation
+            OnBeforeShoot?.Invoke();
+            
+            // Get any aim offset that should be applied to spawn positions
+            Vector3 aimOffset = GetAimOffset?.Invoke() ?? Vector3.zero;
+            
+            // Calculate the actual spawn position (muzzle + aim offset in muzzle's local space)
+            Vector3 spawnPosition = WeaponMuzzle.position + WeaponMuzzle.TransformDirection(aimOffset);
+            
             int bulletsPerShotFinal = ShootType == WeaponShootType.Charge
                 ? Mathf.CeilToInt(CurrentCharge * BulletsPerShot)
                 : BulletsPerShot;
@@ -453,7 +486,7 @@ namespace Unity.FPS.Game
             for (int i = 0; i < bulletsPerShotFinal; i++)
             {
                 Vector3 shotDirection = GetShotDirectionWithinSpread(WeaponMuzzle);
-                ProjectileBase newProjectile = Instantiate(ProjectilePrefab, WeaponMuzzle.position,
+                ProjectileBase newProjectile = Instantiate(ProjectilePrefab, spawnPosition,
                     Quaternion.LookRotation(shotDirection));
                 newProjectile.Shoot(this);
             }
@@ -461,21 +494,22 @@ namespace Unity.FPS.Game
             // muzzle flash
             if (MuzzleFlashPrefab != null)
             {
-                GameObject muzzleFlashInstance = Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position,
+                // Instantiate at corrected position (including aim offset)
+                GameObject muzzleFlashInstance = Instantiate(MuzzleFlashPrefab, spawnPosition,
                     WeaponMuzzle.rotation, WeaponMuzzle.transform);
                 
-                // Scale the muzzle flash if scale is not 1
-                if (MuzzleFlashScale != 1f)
+                // Get all particle systems and configure them
+                ParticleSystem[] particleSystems = muzzleFlashInstance.GetComponentsInChildren<ParticleSystem>();
+                foreach (ParticleSystem ps in particleSystems)
                 {
-                    // Scale the transform
-                    muzzleFlashInstance.transform.localScale = Vector3.one * MuzzleFlashScale;
+                    var main = ps.main;
                     
-                    // Also scale particle systems if present (particle systems need their properties scaled)
-                    ParticleSystem[] particleSystems = muzzleFlashInstance.GetComponentsInChildren<ParticleSystem>();
-                    foreach (ParticleSystem ps in particleSystems)
+                    // CRITICAL: Force Local space so particles follow the weapon during aim animation
+                    main.simulationSpace = ParticleSystemSimulationSpace.Local;
+                    
+                    // Scale the muzzle flash if scale is not 1
+                    if (MuzzleFlashScale != 1f)
                     {
-                        var main = ps.main;
-                        
                         // Handle startSize - works with both constants and curves
                         if (main.startSize.mode == ParticleSystemCurveMode.Constant)
                         {
@@ -522,8 +556,12 @@ namespace Unity.FPS.Game
                         emission.rateOverTimeMultiplier *= MuzzleFlashScale;
                         emission.rateOverDistanceMultiplier *= MuzzleFlashScale;
                     }
-                    
-                    Debug.Log($"Scaled muzzle flash to {MuzzleFlashScale} (found {particleSystems.Length} particle systems)");
+                }
+                
+                // Scale transform if needed
+                if (MuzzleFlashScale != 1f)
+                {
+                    muzzleFlashInstance.transform.localScale = Vector3.one * MuzzleFlashScale;
                 }
                 
                 // Unparent the muzzleFlashInstance
@@ -554,6 +592,10 @@ namespace Unity.FPS.Game
                 ParticleSystem[] particleSystems = MuzzleExplosionEffect.GetComponentsInChildren<ParticleSystem>(true);
                 foreach (ParticleSystem ps in particleSystems)
                 {
+                    // CRITICAL: Force Local space so particles follow the weapon during aim animation
+                    var main = ps.main;
+                    main.simulationSpace = ParticleSystemSimulationSpace.Local;
+                    
                     // Stop and clear first to ensure burst replays from beginning
                     ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                     ps.Play();

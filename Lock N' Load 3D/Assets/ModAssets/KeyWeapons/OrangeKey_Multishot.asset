@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   KeyName: Orange Key
   KeyColor: {r: 1, g: 0.6, b: 0.1, a: 1}
-  KeyIcon: {fileID: 0}
+  KeyIcon: {fileID: 21300000, guid: 375e731426c71004c9930211e6795966, type: 3}
+  KeyIconGlow: {fileID: 21300000, guid: 2481b80153c8f0944ac52a92eb8fb3ee, type: 3}
   Damage: 15
   FireRate: 0.1
   ProjectileSpeed: 30
@@ -29,6 +30,7 @@ MonoBehaviour:
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: f27e2f8a48d25414ba8e5fb0cd2dd702,
     type: 3}
   MuzzleFlashScale: 1
+  WeaponUIIcon: {fileID: 21300000, guid: 388c8f4b7f9b0c847a0a551c6e0fc021, type: 3}
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}

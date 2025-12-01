@@ -41,9 +41,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2225486910712267856}
   - component: {fileID: 8323776800172828795}
-  - component: {fileID: 8745372878802205896}
-  - component: {fileID: 555188489432107117}
   - component: {fileID: 8090847488450120274}
+  - component: {fileID: 2953814769464354609}
   m_Layer: 0
   m_Name: Pink_Key_Weapon 4
   m_TagString: Untagged
@@ -128,105 +127,6 @@ MonoBehaviour:
   ContinuousShootStartSfx: {fileID: 0}
   ContinuousShootLoopSfx: {fileID: 0}
   ContinuousShootEndSfx: {fileID: 0}
---- !u!114 &8745372878802205896
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2225486910712267859}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc94179cece5b4e41ae9298ddbf83fdf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  SimultaneousFuelCellsUsage: 0
-  FuelCells:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  FuelCellUsedPosition: {x: 0, y: 0.1, z: 0}
-  FuelCellUnusedPosition: {x: 0, y: 0, z: 0}
---- !u!114 &555188489432107117
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2225486910712267859}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29a2833c2faa8a3439fd04522cf5733c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  SteamVfx: {fileID: 0}
-  SteamVfxEmissionRateMax: 8
-  OverheatGradient:
-    serializedVersion: 2
-    key0: {r: 0.31408098, g: 3.482202, b: 0, a: 1}
-    key1: {r: 5.2164755, g: 1.5567491, b: 0, a: 1}
-    key2: {r: 8, g: 0, b: 0, a: 0}
-    key3: {r: 0, g: 0, b: 0, a: 0}
-    key4: {r: 0, g: 0, b: 0, a: 0}
-    key5: {r: 0, g: 0, b: 0, a: 0}
-    key6: {r: 0, g: 0, b: 0, a: 0}
-    key7: {r: 0, g: 0, b: 0, a: 0}
-    ctime0: 0
-    ctime1: 65535
-    ctime2: 65535
-    ctime3: 0
-    ctime4: 0
-    ctime5: 0
-    ctime6: 0
-    ctime7: 0
-    atime0: 0
-    atime1: 65535
-    atime2: 0
-    atime3: 0
-    atime4: 0
-    atime5: 0
-    atime6: 0
-    atime7: 0
-    m_Mode: 0
-    m_ColorSpace: -1
-    m_NumColorKeys: 2
-    m_NumAlphaKeys: 2
-  OverheatingMaterial: {fileID: 2100000, guid: 0c55f53a7bb3c354ababeb18b89c2fce, type: 2}
-  CoolingCellsSound: {fileID: 8300000, guid: 93331a7c9fe98494a84f18effb358899, type: 3}
-  AmmoToVolumeRatioCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 1.25
-      outSlope: 1.25
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 0.8
-      value: 1
-      inSlope: -0.0030681617
-      outSlope: -0.0030681617
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 1
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!82 &8090847488450120274
 AudioSource:
   m_ObjectHideFlags: 0
@@ -325,6 +225,32 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2953814769464354609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2225486910712267859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16d80974603b29d47beae40bad9dc2b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: fps.Gameplay::Unity.FPS.Gameplay.KeyWeaponOverheatBehavior
+  HeatPerShot: 0.12
+  HeatDecayRate: 0.35
+  OverheatCooldownThreshold: 0.3
+  EmissionIntensity: 1
+  HotColor: {r: 1, g: 0.07450981, b: 0, a: 1}
+  SteamVfxPrefab: {fileID: 4134168188543666222, guid: f77e2130c96652640accf8b9f6990d6b,
+    type: 3}
+  SteamVfxEmissionRateMax: 8
+  OverheatSound: {fileID: 0}
+  CoolingSound: {fileID: 0}
+  SoundVolume: 0.5
+  OverheatLiftAmount: 0.08
+  OverheatLiftSpeed: 8
+  OverheatTiltAngle: -10
 --- !u!1 &8088409166493606719
 GameObject:
   m_ObjectHideFlags: 0

@@ -10,6 +10,11 @@ namespace Unity.FPS.UI
         public Image CrosshairImage;
         public Sprite NullCrosshairSprite;
         public float CrosshairUpdateshrpness = 5f;
+        
+        [Header("Scale Settings")]
+        [Tooltip("Global multiplier for all crosshair sizes")]
+        [Range(0.1f, 2f)]
+        public float CrosshairSizeMultiplier = 0.5f;  // 50% of original size
 
         PlayerWeaponsManager m_WeaponsManager;
         KeyWeaponController m_KeyWeaponController;
@@ -81,20 +86,20 @@ namespace Unity.FPS.UI
             {
                 m_CurrentCrosshair = m_CrosshairDataTarget;
                 CrosshairImage.sprite = m_CurrentCrosshair.CrosshairSprite;
-                m_CrosshairRectTransform.sizeDelta = m_CurrentCrosshair.CrosshairSize * Vector2.one;
+                m_CrosshairRectTransform.sizeDelta = m_CurrentCrosshair.CrosshairSize * CrosshairSizeMultiplier * Vector2.one;
             }
             else if ((force || m_WasPointingAtEnemy) && !m_WeaponsManager.IsPointingAtEnemy)
             {
                 m_CurrentCrosshair = m_CrosshairDataDefault;
                 CrosshairImage.sprite = m_CurrentCrosshair.CrosshairSprite;
-                m_CrosshairRectTransform.sizeDelta = m_CurrentCrosshair.CrosshairSize * Vector2.one;
+                m_CrosshairRectTransform.sizeDelta = m_CurrentCrosshair.CrosshairSize * CrosshairSizeMultiplier * Vector2.one;
             }
 
             CrosshairImage.color = Color.Lerp(CrosshairImage.color, m_CurrentCrosshair.CrosshairColor,
-                Time.deltaTime * CrosshairUpdateshrpness);
+Time.deltaTime * CrosshairUpdateshrpness);
 
             m_CrosshairRectTransform.sizeDelta = Mathf.Lerp(m_CrosshairRectTransform.sizeDelta.x,
-                m_CurrentCrosshair.CrosshairSize,
+                m_CurrentCrosshair.CrosshairSize * CrosshairSizeMultiplier,
                 Time.deltaTime * CrosshairUpdateshrpness) * Vector2.one;
         }
 
@@ -147,8 +152,8 @@ namespace Unity.FPS.UI
             
             CrosshairImage.color = Color.Lerp(CrosshairImage.color, targetColor, Time.deltaTime * CrosshairUpdateshrpness);
             
-            // set size
-            float targetSize = currentKey.CrosshairSize;
+            // set size (with global multiplier)
+            float targetSize = currentKey.CrosshairSize * CrosshairSizeMultiplier;
             if (m_CrosshairRectTransform != null)
             {
                 m_CrosshairRectTransform.sizeDelta = Vector2.Lerp(

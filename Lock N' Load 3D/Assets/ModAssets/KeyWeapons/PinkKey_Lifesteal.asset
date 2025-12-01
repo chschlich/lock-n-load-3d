@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   KeyName: Pink Key
   KeyColor: {r: 1, g: 0.4, b: 0.8, a: 1}
-  KeyIcon: {fileID: 0}
+  KeyIcon: {fileID: 21300000, guid: acae439e5e1865646bf98d9a1911e579, type: 3}
+  KeyIconGlow: {fileID: 21300000, guid: 9685042fd81654347838b5d904c50aa2, type: 3}
   Damage: 35
   FireRate: 0.3
   ProjectileSpeed: 35
@@ -29,6 +30,7 @@ MonoBehaviour:
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: b6c88b7f40f7f994f98a48d1e67d3c75,
     type: 3}
   MuzzleFlashScale: 0.9
+  WeaponUIIcon: {fileID: 21300000, guid: ec61f7cd3c6860340a9c62d6a929ab91, type: 3}
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}

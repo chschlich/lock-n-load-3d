@@ -77,6 +77,18 @@ namespace Unity.FPS.Gameplay
             UpdateWeaponAiming();
             UpdateWeaponRecoil();
         }
+        
+        /// <summary>
+        /// Forces the aim offset to immediately snap to target position.
+        /// Call before spawning effects to ensure position matches visual aim state.
+        /// </summary>
+        public void SnapAimToTarget()
+        {
+            if (InputHandler != null && InputHandler.GetAimInputHeld())
+            {
+                m_AimingOffset = AimOffset;
+            }
+        }
 
         /// <summary>
         /// Called by KeyWeaponController when the weapon fires.
@@ -93,7 +105,9 @@ namespace Unity.FPS.Gameplay
         /// </summary>
         void UpdateWeaponAiming()
         {
-            m_IsAiming = InputHandler != null && InputHandler.GetAimInputHeld();
+            bool inputHandlerValid = InputHandler != null;
+            bool aimInputHeld = inputHandlerValid && InputHandler.GetAimInputHeld();
+            m_IsAiming = aimInputHeld;
 
             if (m_IsAiming)
             {

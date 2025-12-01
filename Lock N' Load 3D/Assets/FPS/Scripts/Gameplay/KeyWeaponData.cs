@@ -11,7 +11,8 @@ namespace Unity.FPS.Gameplay
         [Header("Key Identity")]
         public string KeyName = "Yellow Key";
         public Color KeyColor = Color.yellow;
-        public Sprite KeyIcon;
+        public Sprite KeyIcon;           // Normal key sprite (enhanced version)
+        public Sprite KeyIconGlow;       // Glow key sprite (from effects folder)
         
         [Header("Weapon Stats")]
         [Tooltip("Base damage per shot")]
@@ -55,6 +56,9 @@ namespace Unity.FPS.Gameplay
         [Range(0.1f, 2f)]
         public float MuzzleFlashScale = 1f;
         
+        [Tooltip("Weapon icon shown above the ammo/overheat bar")]
+        public Sprite WeaponUIIcon;
+        
         [Header("Crosshair")]
         [Tooltip("Crosshair sprite (leave null to use default)")]
         public Sprite CrosshairSprite;
@@ -64,6 +68,33 @@ namespace Unity.FPS.Gameplay
         
         [Tooltip("Crosshair color (uses KeyColor if not set)")]
         public Color CrosshairColor = Color.white;
+        
+        [Header("Projectile Audio")]
+        [Tooltip("Looping sound while projectile is in flight")]
+        public AudioClip ProjectileTravelSound;
+        
+        [Tooltip("Sound on impact (overrides prefab default if set)")]
+        public AudioClip ProjectileImpactSound;
+        
+        [Tooltip("Volume for travel sound")]
+        [Range(0f, 1f)]
+        public float TravelSoundVolume = 0.5f;
+        
+        [Tooltip("Volume for impact sound")]
+        [Range(0f, 1f)]
+        public float ImpactSoundVolume = 1f;
+        
+        [Header("Screenshake (Explosive Only)")]
+        [Tooltip("Maximum distance from explosion that causes screenshake")]
+        public float MaxShakeDistance = 15f;
+        
+        [Tooltip("Base shake intensity at explosion center")]
+        [Range(0f, 2f)]
+        public float ShakeIntensity = 0.8f;
+        
+        [Tooltip("Duration of screenshake in seconds")]
+        [Range(0.05f, 1f)]
+        public float ShakeDuration = 0.3f;
     }
     
     public enum KeyAbilityType

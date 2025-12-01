@@ -57,6 +57,17 @@ namespace Unity.FPS.Gameplay
         [Range(0f, 1f)]
         public float AimZoomRatio = 0.8f;
         
+        [Header("Weapon Switch Animation")]
+        [Tooltip("Duration to put weapon away (arc back/up)")]
+        public float WeaponPutAwayDuration = 0.25f;
+        
+        [Tooltip("Duration to pull out new weapon (arc from below)")]
+        public float WeaponPullOutDuration = 0.3f;
+        
+        [Tooltip("Progress (0-1) at which shooting becomes available during pull-out")]
+        [Range(0f, 1f)]
+        public float ShootableProgressThreshold = 0.5f;
+        
         // active keys
         private List<KeyWeaponData> m_KeyInventory = new List<KeyWeaponData>();
         private int m_CurrentKeyIndex = 0;
@@ -68,6 +79,22 @@ namespace Unity.FPS.Gameplay
         
         // shooting state
         private HashSet<GameObject> m_ProcessedProjectiles = new HashSet<GameObject>();
+        
+        // weapon switch animation state
+        private KeyWeaponSwitchAnimation m_SwitchAnimation;
+        private int m_PendingWeaponIndex = -1;
+        private bool m_FireHeldDuringSwitch = false; // Tracks if fire was held during blocked phase
+        
+        // overheat state
+        private KeyWeaponOverheatBehavior m_OverheatBehavior;
+        private bool m_FireHeldDuringOverheat = false; // Tracks if fire was held during overheat
+        
+        // Persistent heat state per weapon (survives weapon switching)
+        private Dictionary<KeyWeaponData, float> m_WeaponHeatLevels = new Dictionary<KeyWeaponData, float>();
+        private Dictionary<KeyWeaponData, bool> m_WeaponOverheatStates = new Dictionary<KeyWeaponData, bool>();
+        private Dictionary<KeyWeaponData, float> m_WeaponSwitchTimes = new Dictionary<KeyWeaponData, float>(); // Time.time when switched away
+        private Dictionary<KeyWeaponData, float> m_WeaponHeatDecayRates = new Dictionary<KeyWeaponData, float>(); // Decay rate per weapon
+        private Dictionary<KeyWeaponData, float> m_WeaponCooldownThresholds = new Dictionary<KeyWeaponData, float>(); // Cooldown threshold per weapon
         
         // input actions
     private InputAction m_FireAction;
@@ -190,42 +217,40 @@ namespace Unity.FPS.Gameplay
         
         void HandleKeySwitch()
         {
+            // Don't allow switching while animation is playing
+            if (m_SwitchAnimation != null && m_SwitchAnimation.IsSwitching)
+                return;
+            
+            int requestedIndex = -1;
+            
             // number keys 1-6 for weapon switching
             if (m_Key1Action != null && m_Key1Action.triggered && m_KeyInventory.Count > 0)
-                EquipKey(0);
-            if (m_Key2Action != null && m_Key2Action.triggered && m_KeyInventory.Count > 1)
-                EquipKey(1);
-            if (m_Key3Action != null && m_Key3Action.triggered && m_KeyInventory.Count > 2)
-                EquipKey(2);
-            if (m_Key4Action != null && m_Key4Action.triggered && m_KeyInventory.Count > 3)
-                EquipKey(3);
-            if (m_Key5Action != null && m_Key5Action.triggered && m_KeyInventory.Count > 4)
-                EquipKey(4);
-            if (m_Key6Action != null && m_Key6Action.triggered && m_KeyInventory.Count > 5)
-                EquipKey(5);
-            if (m_Key5Action != null && m_Key5Action.triggered && m_KeyInventory.Count > 4)
-                EquipKey(4);
-            if (m_Key6Action != null && m_Key6Action.triggered && m_KeyInventory.Count > 5)
-                EquipKey(5);
-            if (m_Key5Action != null && m_Key5Action.triggered && m_KeyInventory.Count > 4)
-                EquipKey(4);
-            if (m_Key6Action != null && m_Key6Action.triggered && m_KeyInventory.Count > 5)
-                EquipKey(5);
+                requestedIndex = 0;
+            else if (m_Key2Action != null && m_Key2Action.triggered && m_KeyInventory.Count > 1)
+                requestedIndex = 1;
+            else if (m_Key3Action != null && m_Key3Action.triggered && m_KeyInventory.Count > 2)
+                requestedIndex = 2;
+            else if (m_Key4Action != null && m_Key4Action.triggered && m_KeyInventory.Count > 3)
+                requestedIndex = 3;
+            else if (m_Key5Action != null && m_Key5Action.triggered && m_KeyInventory.Count > 4)
+                requestedIndex = 4;
+            else if (m_Key6Action != null && m_Key6Action.triggered && m_KeyInventory.Count > 5)
+                requestedIndex = 5;
             
             // mouse wheel switching using NextWeapon action
-            if (m_NextWeaponAction != null)
+            if (requestedIndex < 0 && m_NextWeaponAction != null)
             {
                 float scroll = m_NextWeaponAction.ReadValue<float>();
                 if (scroll > 0f)
-                {
-                    int nextIndex = (m_CurrentKeyIndex + 1) % m_KeyInventory.Count;
-                    EquipKey(nextIndex);
-                }
+                    requestedIndex = (m_CurrentKeyIndex + 1) % m_KeyInventory.Count;
                 else if (scroll < 0f)
-                {
-                    int nextIndex = (m_CurrentKeyIndex - 1 + m_KeyInventory.Count) % m_KeyInventory.Count;
-                    EquipKey(nextIndex);
-                }
+                    requestedIndex = (m_CurrentKeyIndex - 1 + m_KeyInventory.Count) % m_KeyInventory.Count;
+            }
+            
+            // Start switch if valid and different from current
+            if (requestedIndex >= 0 && requestedIndex != m_CurrentKeyIndex)
+            {
+                StartWeaponSwitch(requestedIndex);
             }
         }
         
@@ -240,6 +265,75 @@ namespace Unity.FPS.Gameplay
             bool fireHeld = m_FireAction != null && m_FireAction.IsPressed();
             bool fireUp = m_FireAction != null && m_FireAction.WasReleasedThisFrame();
             
+            // Track if fire is being held during the blocked phase
+            // This prevents "pre-holding" fire to auto-shoot when animation allows
+            if (m_SwitchAnimation != null && !m_SwitchAnimation.CanShoot)
+            {
+                if (fireHeld)
+                {
+                    m_FireHeldDuringSwitch = true;
+                }
+                return;
+            }
+            
+            // Clear the flag when fire is released (player must re-press to shoot)
+            if (fireUp)
+            {
+                m_FireHeldDuringSwitch = false;
+            }
+            
+            // If fire was held during switch, ignore until released
+            if (m_FireHeldDuringSwitch && !fireDown)
+            {
+                return;
+            }
+            
+            // Fresh press clears the block
+            if (fireDown)
+            {
+                m_FireHeldDuringSwitch = false;
+            }
+            
+            // CSGO-style snap: if shooting during pull-out animation, snap weapon to ready position
+            if (fireDown && m_SwitchAnimation != null && m_SwitchAnimation.CanSnapToReady)
+            {
+                m_SwitchAnimation.SnapToReady();
+            }
+            
+            // Block shooting when overheated
+            // Also require fire release after overheat clears (like switch animation)
+            if (m_OverheatBehavior != null)
+            {
+                if (m_OverheatBehavior.IsOverheated)
+                {
+                    // Track that fire was held during overheat
+                    if (fireHeld)
+                    {
+                        m_FireHeldDuringOverheat = true;
+                    }
+                    return;
+                }
+                
+                // If fire was held during overheat, require release before firing again
+                if (m_FireHeldDuringOverheat)
+                {
+                    if (fireUp)
+                    {
+                        // Clear the flag but DON'T fire on this frame
+                        m_FireHeldDuringOverheat = false;
+                    }
+                    // Block shooting until flag is cleared AND player presses fire again
+                    return;
+                }
+            }
+            
+            // Force weapon position update before shooting so muzzle flash/projectiles
+            // spawn at the correct position during aim-zoom animation
+            if (m_CurrentAnimationController != null)
+            {
+                m_CurrentAnimationController.ForceUpdatePosition();
+            }
+            
             // Let the WeaponController handle shooting logic
             // Check return value to know if we actually fired (same pattern as PlayerWeaponsManager)
             bool hasFired = m_CurrentWeaponController.HandleShootInputs(fireDown, fireHeld, fireUp);
@@ -248,6 +342,12 @@ namespace Unity.FPS.Gameplay
             if (hasFired && m_CurrentShooterAnimation != null)
             {
                 m_CurrentShooterAnimation.AccumulateRecoil(m_CurrentWeaponController.RecoilForce);
+            }
+            
+            // Add heat when weapon fires
+            if (hasFired && m_OverheatBehavior != null)
+            {
+                m_OverheatBehavior.AddHeat();
             }
         }
         
@@ -262,6 +362,18 @@ namespace Unity.FPS.Gameplay
                 projectileStandard.Damage = m_CurrentKey.Damage;
                 projectileStandard.Speed = m_CurrentKey.ProjectileSpeed;
                 Debug.Log($"Set projectile damage={m_CurrentKey.Damage}, speed={m_CurrentKey.ProjectileSpeed}");
+            }
+            
+            // Configure projectile audio (travel sound + impact sound)
+            if (m_CurrentKey.ProjectileTravelSound != null || m_CurrentKey.ProjectileImpactSound != null)
+            {
+                var audioComp = projectile.AddComponent<KeyProjectileAudio>();
+                audioComp.Configure(
+                    m_CurrentKey.ProjectileTravelSound,
+                    m_CurrentKey.ProjectileImpactSound,
+                    m_CurrentKey.TravelSoundVolume,
+                    m_CurrentKey.ImpactSoundVolume
+                );
             }
             
             switch (m_CurrentKey.SpecialAbility)
@@ -284,6 +396,10 @@ namespace Unity.FPS.Gameplay
                     var explosiveComp = projectile.AddComponent<ExplosiveProjectile>();
                     explosiveComp.ExplosionRadius = m_CurrentKey.AbilityPower;
                     explosiveComp.ExplosionDamage = m_CurrentKey.Damage * 0.5f;
+                    // Configure screenshake settings from key data
+                    explosiveComp.MaxShakeDistance = m_CurrentKey.MaxShakeDistance;
+                    explosiveComp.ShakeIntensity = m_CurrentKey.ShakeIntensity;
+                    explosiveComp.ShakeDuration = m_CurrentKey.ShakeDuration;
                     break;
                     
                 case KeyAbilityType.Teleport:
@@ -294,7 +410,183 @@ namespace Unity.FPS.Gameplay
             }
         }
         
+        /// <summary>
+        /// Start the weapon switch animation sequence
+        /// </summary>
+        void StartWeaponSwitch(int newIndex)
+        {
+            if (newIndex < 0 || newIndex >= m_KeyInventory.Count) return;
+            if (newIndex == m_CurrentKeyIndex) return;
+            
+            // Save current weapon's heat state before switching
+            SaveCurrentWeaponHeat();
+            
+            m_PendingWeaponIndex = newIndex;
+            m_FireHeldDuringSwitch = false; // Reset fire-hold tracking for new switch
+            m_FireHeldDuringOverheat = false; // Reset overheat fire-hold tracking for new weapon
+            
+            // If we have a current weapon with animation, start put-away
+            if (m_CurrentWeaponModel != null && m_SwitchAnimation != null)
+            {
+                // Play put-away sound before animation starts
+                var swapAudio = m_CurrentWeaponModel.GetComponent<KeyWeaponSwapAudio>();
+                if (swapAudio != null)
+                {
+                    swapAudio.PlayPutAwaySound();
+                }
+                
+                m_SwitchAnimation.StartPutAway();
+            }
+            else
+            {
+                // No current weapon, just equip the new one directly with pull-out animation
+                EquipKeyImmediate(newIndex);
+                if (m_SwitchAnimation != null)
+                {
+                    m_SwitchAnimation.StartPullOut();
+                    
+                    // Play pull-out sound
+                    if (m_CurrentWeaponModel != null)
+                    {
+                        var swapAudio = m_CurrentWeaponModel.GetComponent<KeyWeaponSwapAudio>();
+                        if (swapAudio != null)
+                        {
+                            swapAudio.PlayPullOutSound();
+                        }
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Save current weapon's heat state for later restoration
+        /// </summary>
+        void SaveCurrentWeaponHeat()
+        {
+            if (m_CurrentKey != null && m_OverheatBehavior != null)
+            {
+                m_WeaponHeatLevels[m_CurrentKey] = m_OverheatBehavior.HeatLevel;
+                m_WeaponOverheatStates[m_CurrentKey] = m_OverheatBehavior.IsOverheated;
+                m_WeaponSwitchTimes[m_CurrentKey] = Time.time;
+                m_WeaponHeatDecayRates[m_CurrentKey] = m_OverheatBehavior.HeatDecayRate;
+                m_WeaponCooldownThresholds[m_CurrentKey] = m_OverheatBehavior.OverheatCooldownThreshold;
+            }
+        }
+        
+        /// <summary>
+        /// Restore heat state for the given weapon, accounting for time elapsed since switch
+        /// </summary>
+        void RestoreWeaponHeat(KeyWeaponData weaponData)
+        {
+            if (weaponData != null && m_OverheatBehavior != null)
+            {
+                if (m_WeaponHeatLevels.TryGetValue(weaponData, out float savedHeat))
+                {
+                    float currentHeat = savedHeat;
+                    bool isOverheated = m_WeaponOverheatStates[weaponData];
+                    
+                    // Calculate time elapsed since weapon was switched away
+                    if (m_WeaponSwitchTimes.TryGetValue(weaponData, out float switchTime))
+                    {
+                        float elapsedTime = Time.time - switchTime;
+                        float decayRate = m_WeaponHeatDecayRates.GetValueOrDefault(weaponData, 0.35f);
+                        float cooldownThreshold = m_WeaponCooldownThresholds.GetValueOrDefault(weaponData, 0.3f);
+                        
+                        // Apply decay over elapsed time
+                        currentHeat = Mathf.Max(0f, savedHeat - (decayRate * elapsedTime));
+                        
+                        // Check if overheat should have cleared
+                        if (isOverheated && currentHeat < cooldownThreshold)
+                        {
+                            isOverheated = false;
+                        }
+                    }
+                    
+                    m_OverheatBehavior.SetHeatState(currentHeat, isOverheated);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Called when put-away animation completes - destroy old weapon and create new
+        /// </summary>
+        void OnWeaponPutAwayComplete()
+        {
+            // Destroy old weapon model
+            if (m_CurrentWeaponModel != null)
+            {
+                Destroy(m_CurrentWeaponModel);
+                m_CurrentWeaponModel = null;
+                m_CurrentWeaponController = null;
+                m_CurrentShooterAnimation = null;
+                m_CurrentAnimationController = null;
+                m_SwitchAnimation = null;
+            }
+            
+            // Create new weapon and start pull-out animation
+            if (m_PendingWeaponIndex >= 0)
+            {
+                EquipKeyImmediate(m_PendingWeaponIndex);
+                m_PendingWeaponIndex = -1;
+                
+                // Start pull-out animation for the new weapon
+                if (m_SwitchAnimation != null)
+                {
+                    m_SwitchAnimation.StartPullOut();
+                    
+                    // Play pull-out sound
+                    if (m_CurrentWeaponModel != null)
+                    {
+                        var swapAudio = m_CurrentWeaponModel.GetComponent<KeyWeaponSwapAudio>();
+                        if (swapAudio != null)
+                        {
+                            swapAudio.PlayPullOutSound();
+                        }
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Public method to equip a key - handles animation if switching, immediate if first equip
+        /// </summary>
         public void EquipKey(int index)
+        {
+            if (index < 0 || index >= m_KeyInventory.Count) return;
+            
+            // If same key, do nothing
+            if (index == m_CurrentKeyIndex && m_CurrentWeaponModel != null) return;
+            
+            // If no current weapon, do immediate equip with pull-out animation
+            if (m_CurrentWeaponModel == null)
+            {
+                EquipKeyImmediate(index);
+                if (m_SwitchAnimation != null)
+                {
+                    m_SwitchAnimation.StartPullOut();
+                    
+                    // Play pull-out sound
+                    if (m_CurrentWeaponModel != null)
+                    {
+                        var swapAudio = m_CurrentWeaponModel.GetComponent<KeyWeaponSwapAudio>();
+                        if (swapAudio != null)
+                        {
+                            swapAudio.PlayPullOutSound();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Start animated switch
+                StartWeaponSwitch(index);
+            }
+        }
+        
+        /// <summary>
+        /// Internal method to immediately equip a key (no animation state machine, just setup)
+        /// </summary>
+        void EquipKeyImmediate(int index)
         {
             if (index < 0 || index >= m_KeyInventory.Count) return;
             
@@ -360,6 +652,12 @@ namespace Unity.FPS.Gameplay
                 shooterAnimation.AimOffset = AimOffset;
                 shooterAnimation.AimZoomRatio = AimZoomRatio;
                 
+                // IMPORTANT: Explicitly set InputHandler reference (don't rely on Start() auto-find)
+                // This ensures aim detection works immediately after weapon equip
+                shooterAnimation.InputHandler = FindFirstObjectByType<PlayerInputHandler>();
+                shooterAnimation.PlayerCamera = PlayerController.PlayerCamera;
+                shooterAnimation.DefaultFov = PlayerController.PlayerCamera.fieldOfView;
+                
                 // Link shooter animation to animation controller
                 animationController.ShooterAnimation = shooterAnimation;
                 
@@ -375,6 +673,29 @@ namespace Unity.FPS.Gameplay
                     
                     // store reference to current weapon controller
                     m_CurrentWeaponController = weaponController;
+                    
+                    // CRITICAL: Set up callbacks for shooting
+                    var animCtrl = animationController; // capture for closure
+                    var shooterAnim = shooterAnimation; // capture for reading current aim offset
+                    
+                    // Callback to update weapon position before shooting
+                    weaponController.OnBeforeShoot = () => {
+                        if (animCtrl != null)
+                        {
+                            animCtrl.ForceUpdatePosition();
+                        }
+                    };
+                    
+                    // Callback to get aim offset for spawn position correction
+                    weaponController.GetAimOffset = () => {
+                        var inputHandler = FindFirstObjectByType<PlayerInputHandler>();
+                        if (inputHandler != null && inputHandler.GetAimInputHeld())
+                        {
+                            // Use hardcoded offset that works
+                            return new Vector3(0f, 0f, 0.5f);
+                        }
+                        return Vector3.zero;
+                    };
                     
                     // set weapon stats from key data
                     weaponController.WeaponName = m_CurrentKey.KeyName;
@@ -475,6 +796,55 @@ namespace Unity.FPS.Gameplay
                             }
                         }
                     }
+                }
+                
+                // Set up switch animation component
+                var switchAnimation = m_CurrentWeaponModel.GetComponent<KeyWeaponSwitchAnimation>();
+                if (switchAnimation == null)
+                {
+                    switchAnimation = m_CurrentWeaponModel.AddComponent<KeyWeaponSwitchAnimation>();
+                }
+                
+                // Configure switch animation settings
+                switchAnimation.PutAwayDuration = WeaponPutAwayDuration;
+                switchAnimation.PullOutDuration = WeaponPullOutDuration;
+                switchAnimation.ShootableProgressThreshold = ShootableProgressThreshold;
+                
+                // Hook up callbacks
+                switchAnimation.OnPutAwayComplete = OnWeaponPutAwayComplete;
+                
+                // Link to animation controller
+                if (m_CurrentAnimationController != null)
+                {
+                    m_CurrentAnimationController.SwitchAnimation = switchAnimation;
+                }
+                
+                // Store reference
+                m_SwitchAnimation = switchAnimation;
+                
+                // Find overheat behavior component on prefab (configured in Inspector)
+                var overheatBehavior = m_CurrentWeaponModel.GetComponent<KeyWeaponOverheatBehavior>();
+                if (overheatBehavior != null)
+                {
+                    // Initialize and link to animation controller
+                    overheatBehavior.Initialize();
+                    
+                    if (m_CurrentAnimationController != null)
+                    {
+                        m_CurrentAnimationController.OverheatBehavior = overheatBehavior;
+                    }
+                    
+                    m_OverheatBehavior = overheatBehavior;
+                    
+                    // Restore heat state if this weapon was previously used
+                    RestoreWeaponHeat(m_CurrentKey);
+                    
+                    // Reset fire-hold flag when equipping (in case it was set from another weapon)
+                    m_FireHeldDuringOverheat = false;
+                }
+                else
+                {
+                    m_OverheatBehavior = null;
                 }
                 
                 Debug.Log($"Equipped weapon model for {m_CurrentKey.KeyName}: {m_CurrentWeaponModel.name} at world pos {m_CurrentWeaponModel.transform.position}, local pos {m_CurrentWeaponModel.transform.localPosition}, active: {m_CurrentWeaponModel.activeSelf}");
