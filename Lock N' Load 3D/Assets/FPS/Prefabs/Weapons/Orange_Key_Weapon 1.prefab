@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 8323776800172828795}
   - component: {fileID: 8090847488450120274}
   - component: {fileID: 8175956951523610215}
+  - component: {fileID: 2234567890123456789}
   m_Layer: 0
   m_Name: Orange_Key_Weapon 1
   m_TagString: Untagged
@@ -121,7 +122,8 @@ MonoBehaviour:
   MuzzleFlashScale: 1
   UnparentMuzzleFlash: 0
   MuzzleExplosionEffect: {fileID: 0}
-  ShootSfx: {fileID: 8300000, guid: 53d2238f4c4b2aa4f8e559c7af9e0126, type: 3}
+  ShootSfx: {fileID: 8300000, guid: f0a0c6736363ab64fa7a086f4c26c4a2, type: 3}
+  FiringSoundVolume: 1.5
   ChangeWeaponSfx: {fileID: 8300000, guid: 7b83d61917ac1224f942a0609b1221f2, type: 3}
   UseContinuousShootSound: 0
   ContinuousShootStartSfx: {fileID: 0}
@@ -245,12 +247,27 @@ MonoBehaviour:
   SteamVfxPrefab: {fileID: 4134168188543666222, guid: f77e2130c96652640accf8b9f6990d6b,
     type: 3}
   SteamVfxEmissionRateMax: 8
-  OverheatSound: {fileID: 0}
-  CoolingSound: {fileID: 0}
-  SoundVolume: 0.5
+  OverheatSound: {fileID: 8300000, guid: 5007662e2a20f774998e30773d898856, type: 3}
+  CoolingSound: {fileID: 8300000, guid: 93331a7c9fe98494a84f18effb358899, type: 3}
+  OverheatSoundVolume: 2.5
+  CoolingSoundVolume: 0.8
   OverheatLiftAmount: 0.08
   OverheatLiftSpeed: 8
   OverheatTiltAngle: -10
+--- !u!114 &2234567890123456789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2225486910712267859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd2a94e0d926deb42aa4623eedd940ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PullOutSound: {fileID: 8300000, guid: 0d5a33d524ef72a46afce6a26df038d9, type: 3}
+  PullOutVolume: 0.8
 --- !u!1 &8088409166493606719
 GameObject:
   m_ObjectHideFlags: 0

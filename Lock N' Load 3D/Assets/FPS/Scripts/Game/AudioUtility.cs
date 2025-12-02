@@ -23,7 +23,7 @@ namespace Unity.FPS.Game
         }
 
         public static void CreateSFX(AudioClip clip, Vector3 position, AudioGroups audioGroup, float spatialBlend,
-            float rolloffDistanceMin = 1f)
+            float rolloffDistanceMin = 1f, float volume = 1f)
         {
             GameObject impactSfxInstance = new GameObject();
             impactSfxInstance.transform.position = position;
@@ -31,6 +31,7 @@ namespace Unity.FPS.Game
             source.clip = clip;
             source.spatialBlend = spatialBlend;
             source.minDistance = rolloffDistanceMin;
+            source.volume = volume;
             source.Play();
 
             source.outputAudioMixerGroup = GetAudioGroup(audioGroup);

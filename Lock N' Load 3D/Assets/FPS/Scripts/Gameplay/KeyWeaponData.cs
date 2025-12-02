@@ -77,14 +77,17 @@ namespace Unity.FPS.Gameplay
         public AudioClip ProjectileImpactSound;
         
         [Tooltip("Volume for travel sound")]
-        [Range(0f, 1f)]
+        [Range(0f, 5f)]
         public float TravelSoundVolume = 0.5f;
         
         [Tooltip("Volume for impact sound")]
-        [Range(0f, 1f)]
+        [Range(0f, 5f)]
         public float ImpactSoundVolume = 1f;
         
-        [Header("Screenshake (Explosive Only)")]
+        [Header("Explosion Settings (Explosive/BurnExplosive)")]
+        [Tooltip("Radius of the explosion AOE")]
+        public float ExplosionRadius = 5f;
+        
         [Tooltip("Maximum distance from explosion that causes screenshake")]
         public float MaxShakeDistance = 15f;
         
@@ -101,8 +104,9 @@ namespace Unity.FPS.Gameplay
     {
         None,           // standard shot
         Lifesteal,      // heals player on hit (pink key)
-        Burn,           // damage over time poison effect (red key)
+        Burn,           // damage over time poison effect (red key - legacy)
         Explosive,      // area damage on impact (purple key)
         Teleport,       // teleports player to hit location (green key)
+        BurnExplosive,  // burn + explosion AOE (red key)
     }
 }

@@ -187,6 +187,84 @@ namespace Unity.FPS.Gameplay
         }
     }
     
+    // burn + explosive projectile - AOE damage + burn effect (red key)
+    public class BurnExplosiveProjectile : MonoBehaviour
+    {
+        public float ExplosionRadius = 8f;      // Bigger than purple key (5f)
+        public float ExplosionDamage = 30f;
+        public float BurnDuration = 3f;
+        public float BurnDamagePerSecond = 10f;
+        public GameObject ExplosionEffectPrefab;
+        
+        [Header("Screen Shake")]
+        public float MaxShakeDistance = 12f;
+        public float ShakeIntensity = 0.5f;
+        public float ShakeDuration = 0.25f;
+        
+        void OnDestroy()
+        {
+            if (gameObject.scene.isLoaded)
+            {
+                Explode();
+            }
+        }
+        
+        void Explode()
+        {
+            // Find all damageable objects in radius (bigger than purple)
+            Collider[] hitColliders = Physics.OverlapSphere(transform.position, ExplosionRadius);
+            
+            foreach (var hitCollider in hitColliders)
+            {
+                var damageable = hitCollider.GetComponent<Damageable>();
+                if (damageable)
+                {
+                    // Deal explosion damage
+                    damageable.InflictDamage(ExplosionDamage, false, gameObject);
+                    
+                    // Apply burn effect to all enemies hit
+                    var existingBurn = damageable.GetComponent<BurnEffect>();
+                    if (existingBurn)
+                    {
+                        existingBurn.RefreshBurn(BurnDuration, BurnDamagePerSecond);
+                    }
+                    else
+                    {
+                        var burnEffect = damageable.gameObject.AddComponent<BurnEffect>();
+                        burnEffect.Initialize(BurnDuration, BurnDamagePerSecond);
+                    }
+                }
+            }
+            
+            // Spawn explosion effect
+            if (ExplosionEffectPrefab)
+            {
+                Instantiate(ExplosionEffectPrefab, transform.position, Quaternion.identity);
+            }
+            
+            // Apply screenshake
+            ApplyScreenShake();
+        }
+        
+        void ApplyScreenShake()
+        {
+            var projectileBase = GetComponent<ProjectileBase>();
+            if (projectileBase == null || projectileBase.Owner == null) return;
+            
+            var playerController = projectileBase.Owner.GetComponent<PlayerCharacterController>();
+            if (playerController == null || playerController.PlayerCamera == null) return;
+            
+            float distance = Vector3.Distance(transform.position, projectileBase.Owner.transform.position);
+            
+            if (distance > MaxShakeDistance) return;
+            
+            float falloff = 1f - (distance / MaxShakeDistance);
+            float scaledIntensity = ShakeIntensity * falloff * falloff;
+            
+            CameraShake.ApplyShake(playerController.PlayerCamera, scaledIntensity, ShakeDuration);
+        }
+    }
+    
     // teleport projectile - teleports player to hit location (green key)
     public class TeleportProjectile : MonoBehaviour
     {
@@ -194,6 +272,12 @@ namespace Unity.FPS.Gameplay
         private bool m_HasTeleported = false;
         private Vector3 m_HitPosition;
         private bool m_HasHitPosition = false;
+        
+        [Tooltip("Maximum search radius to find a valid teleport position")]
+        public float MaxSearchRadius = 5f;
+        
+        [Tooltip("Step size for spiral search pattern")]
+        public float SearchStep = 0.5f;
         
         public void OnHit(Vector3 hitPosition)
         {
@@ -214,35 +298,106 @@ namespace Unity.FPS.Gameplay
                 
                 Debug.Log($"TeleportProjectile: Controller={controller?.name}, CharController={charController?.name}");
                 
-                if (controller != null)
+                if (controller != null && charController != null)
                 {
-                    // offset position up to avoid clipping through floor
-                    Vector3 teleportPos = m_HitPosition + Vector3.up * 1.5f;
-                    
-                    Debug.Log($"Attempting teleport from {Player.transform.position} to {teleportPos}");
-                    
-                    // disable character controller temporarily to allow teleport
-                    if (charController != null)
+                    // Find a safe teleport position
+                    Vector3 safePosition;
+                    if (FindSafeTeleportPosition(m_HitPosition, charController, out safePosition))
                     {
+                        Debug.Log($"Attempting teleport from {Player.transform.position} to {safePosition}");
+                        
+                        // disable character controller temporarily to allow teleport
                         charController.enabled = false;
-                    }
-                    
-                    Player.transform.position = teleportPos;
-                    
-                    // re-enable character controller
-                    if (charController != null)
-                    {
+                        
+                        Player.transform.position = safePosition;
+                        
+                        // re-enable character controller
                         charController.enabled = true;
+                        
+                        m_HasTeleported = true;
+                        Debug.Log($"Teleported player to {safePosition}, new position: {Player.transform.position}");
                     }
-                    
-                    m_HasTeleported = true;
-                    Debug.Log($"Teleported player to {teleportPos}, new position: {Player.transform.position}");
+                    else
+                    {
+                        Debug.LogWarning($"TeleportProjectile: Could not find safe teleport position near {m_HitPosition}");
+                    }
                 }
                 else
                 {
-                    Debug.LogError("TeleportProjectile: PlayerCharacterController not found!");
+                    Debug.LogError("TeleportProjectile: PlayerCharacterController or CharacterController not found!");
                 }
             }
+        }
+        
+        /// <summary>
+        /// Finds a safe position to teleport the player, avoiding walls and obstacles
+        /// </summary>
+        bool FindSafeTeleportPosition(Vector3 targetPosition, CharacterController charController, out Vector3 safePosition)
+        {
+            // Get CharacterController dimensions
+            float radius = charController.radius;
+            float height = charController.height;
+            float skinWidth = charController.skinWidth;
+            
+            // Offset position up to place player's feet at hit point
+            Vector3 basePosition = targetPosition + Vector3.up * (height * 0.5f);
+            
+            // Check if the initial position is valid
+            if (IsPositionValid(basePosition, radius, height, skinWidth))
+            {
+                safePosition = basePosition;
+                return true;
+            }
+            
+            // If initial position is invalid, search in a spiral pattern
+            float currentRadius = SearchStep;
+            int maxIterations = Mathf.CeilToInt(MaxSearchRadius / SearchStep);
+            
+            for (int i = 0; i < maxIterations; i++)
+            {
+                // Try 8 directions at this radius
+                for (int angle = 0; angle < 360; angle += 45)
+                {
+                    float rad = angle * Mathf.Deg2Rad;
+                    Vector3 offset = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * currentRadius;
+                    Vector3 testPosition = basePosition + offset;
+                    
+                    if (IsPositionValid(testPosition, radius, height, skinWidth))
+                    {
+                        safePosition = testPosition;
+                        Debug.Log($"Found safe position {currentRadius:F1}m away from target (angle: {angle}°)");
+                        return true;
+                    }
+                }
+                
+                currentRadius += SearchStep;
+            }
+            
+            // No valid position found
+            safePosition = basePosition;
+            return false;
+        }
+        
+        /// <summary>
+        /// Checks if a position is valid for the player (no collisions with walls/obstacles)
+        /// </summary>
+        bool IsPositionValid(Vector3 position, float radius, float height, float skinWidth)
+        {
+            // Calculate capsule points (top and bottom sphere centers)
+            Vector3 point1 = position + Vector3.up * radius; // Bottom
+            Vector3 point2 = position + Vector3.up * (height - radius); // Top
+            
+            // Add a small buffer to the radius check
+            float checkRadius = radius - skinWidth;
+            
+            // Check if the capsule would overlap with any colliders
+            // Use the same layers that the CharacterController would collide with
+            int layerMask = ~0; // Check all layers
+            
+            // Ignore triggers
+            bool hitAnything = Physics.CheckCapsule(point1, point2, checkRadius, layerMask, QueryTriggerInteraction.Ignore);
+            
+            return !hitAnything;
         }
     }
 }

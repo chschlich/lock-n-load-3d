@@ -34,3 +34,12 @@ MonoBehaviour:
   CrosshairSprite: {fileID: 0}
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}
+  ProjectileTravelSound: {fileID: 0}
+  ProjectileImpactSound: {fileID: 8300000, guid: 7b69c4b89b0a56f42a3a16502d8dc9d4,
+    type: 3}
+  TravelSoundVolume: 0.5
+  ImpactSoundVolume: 0.6
+  ExplosionRadius: 5
+  MaxShakeDistance: 15
+  ShakeIntensity: 0.8
+  ShakeDuration: 0.3

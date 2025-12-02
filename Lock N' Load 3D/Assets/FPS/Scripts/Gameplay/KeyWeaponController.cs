@@ -87,7 +87,10 @@ namespace Unity.FPS.Gameplay
         
         // overheat state
         private KeyWeaponOverheatBehavior m_OverheatBehavior;
-        private bool m_FireHeldDuringOverheat = false; // Tracks if fire was held during overheat
+        
+        // audio
+        private AudioSource m_FiringAudioSource;
+        private AudioSource m_SwapAudioSource;
         
         // Persistent heat state per weapon (survives weapon switching)
         private Dictionary<KeyWeaponData, float> m_WeaponHeatLevels = new Dictionary<KeyWeaponData, float>();
@@ -120,6 +123,25 @@ namespace Unity.FPS.Gameplay
         void Start()
         {
             Debug.Log("KeyWeaponController: Starting initialization...");
+            
+            // set up audio sources
+            m_FiringAudioSource = gameObject.AddComponent<AudioSource>();
+            m_FiringAudioSource.playOnAwake = false;
+            m_FiringAudioSource.spatialBlend = 0f; // 2D sound (first-person weapon)
+            m_FiringAudioSource.loop = false;
+            
+            m_SwapAudioSource = gameObject.AddComponent<AudioSource>();
+            m_SwapAudioSource.playOnAwake = false;
+            m_SwapAudioSource.spatialBlend = 0f; // 2D sound (first-person weapon)
+            m_SwapAudioSource.loop = false;
+            
+            // Try to use the weapon shoot audio group if available
+            var audioGroup = AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.WeaponShoot);
+            if (audioGroup != null)
+            {
+                m_FiringAudioSource.outputAudioMixerGroup = audioGroup;
+                m_SwapAudioSource.outputAudioMixerGroup = audioGroup;
+            }
             
             // set up input actions
             m_FireAction = InputSystem.actions.FindAction("Player/Fire");
@@ -300,33 +322,6 @@ namespace Unity.FPS.Gameplay
                 m_SwitchAnimation.SnapToReady();
             }
             
-            // Block shooting when overheated
-            // Also require fire release after overheat clears (like switch animation)
-            if (m_OverheatBehavior != null)
-            {
-                if (m_OverheatBehavior.IsOverheated)
-                {
-                    // Track that fire was held during overheat
-                    if (fireHeld)
-                    {
-                        m_FireHeldDuringOverheat = true;
-                    }
-                    return;
-                }
-                
-                // If fire was held during overheat, require release before firing again
-                if (m_FireHeldDuringOverheat)
-                {
-                    if (fireUp)
-                    {
-                        // Clear the flag but DON'T fire on this frame
-                        m_FireHeldDuringOverheat = false;
-                    }
-                    // Block shooting until flag is cleared AND player presses fire again
-                    return;
-                }
-            }
-            
             // Force weapon position update before shooting so muzzle flash/projectiles
             // spawn at the correct position during aim-zoom animation
             if (m_CurrentAnimationController != null)
@@ -334,21 +329,28 @@ namespace Unity.FPS.Gameplay
                 m_CurrentAnimationController.ForceUpdatePosition();
             }
             
-            // Let the WeaponController handle shooting logic
-            // Check return value to know if we actually fired (same pattern as PlayerWeaponsManager)
-            bool hasFired = m_CurrentWeaponController.HandleShootInputs(fireDown, fireHeld, fireUp);
+            // Check if we can shoot (not overheated)
+            // IsOverheated remains true until heat drops below OverheatCooldownThreshold
+            bool canShootDueToHeat = m_OverheatBehavior == null || !m_OverheatBehavior.IsOverheated;
             
-            // Handle recoil accumulation directly (like PlayerWeaponsManager does)
-            if (hasFired && m_CurrentShooterAnimation != null)
+            if (canShootDueToHeat)
             {
-                m_CurrentShooterAnimation.AccumulateRecoil(m_CurrentWeaponController.RecoilForce);
+                // Let the WeaponController handle shooting logic
+                bool hasFired = m_CurrentWeaponController.HandleShootInputs(fireDown, fireHeld, fireUp);
+                
+                // Handle recoil accumulation
+                if (hasFired && m_CurrentShooterAnimation != null)
+                {
+                    m_CurrentShooterAnimation.AccumulateRecoil(m_CurrentWeaponController.RecoilForce);
+                }
+                
+                // Add heat when weapon fires
+                if (hasFired && m_OverheatBehavior != null)
+                {
+                    m_OverheatBehavior.AddHeat();
+                }
             }
-            
-            // Add heat when weapon fires
-            if (hasFired && m_OverheatBehavior != null)
-            {
-                m_OverheatBehavior.AddHeat();
-            }
+            // If blocked by overheat, don't pass any inputs to WeaponController
         }
         
         void ApplyProjectileAbility(GameObject projectile)
@@ -394,12 +396,24 @@ namespace Unity.FPS.Gameplay
                     
                 case KeyAbilityType.Explosive:
                     var explosiveComp = projectile.AddComponent<ExplosiveProjectile>();
-                    explosiveComp.ExplosionRadius = m_CurrentKey.AbilityPower;
+                    explosiveComp.ExplosionRadius = m_CurrentKey.ExplosionRadius;
                     explosiveComp.ExplosionDamage = m_CurrentKey.Damage * 0.5f;
                     // Configure screenshake settings from key data
                     explosiveComp.MaxShakeDistance = m_CurrentKey.MaxShakeDistance;
                     explosiveComp.ShakeIntensity = m_CurrentKey.ShakeIntensity;
                     explosiveComp.ShakeDuration = m_CurrentKey.ShakeDuration;
+                    break;
+                
+                case KeyAbilityType.BurnExplosive:
+                    var burnExplosiveComp = projectile.AddComponent<BurnExplosiveProjectile>();
+                    burnExplosiveComp.ExplosionRadius = m_CurrentKey.ExplosionRadius;
+                    burnExplosiveComp.ExplosionDamage = m_CurrentKey.Damage * 0.4f;
+                    burnExplosiveComp.BurnDuration = m_CurrentKey.AbilityPower; // Use AbilityPower for burn duration
+                    burnExplosiveComp.BurnDamagePerSecond = m_CurrentKey.Damage * 0.2f;
+                    // Configure screenshake
+                    burnExplosiveComp.MaxShakeDistance = m_CurrentKey.MaxShakeDistance;
+                    burnExplosiveComp.ShakeIntensity = m_CurrentKey.ShakeIntensity;
+                    burnExplosiveComp.ShakeDuration = m_CurrentKey.ShakeDuration;
                     break;
                     
                 case KeyAbilityType.Teleport:
@@ -423,18 +437,10 @@ namespace Unity.FPS.Gameplay
             
             m_PendingWeaponIndex = newIndex;
             m_FireHeldDuringSwitch = false; // Reset fire-hold tracking for new switch
-            m_FireHeldDuringOverheat = false; // Reset overheat fire-hold tracking for new weapon
             
             // If we have a current weapon with animation, start put-away
             if (m_CurrentWeaponModel != null && m_SwitchAnimation != null)
             {
-                // Play put-away sound before animation starts
-                var swapAudio = m_CurrentWeaponModel.GetComponent<KeyWeaponSwapAudio>();
-                if (swapAudio != null)
-                {
-                    swapAudio.PlayPutAwaySound();
-                }
-                
                 m_SwitchAnimation.StartPutAway();
             }
             else
@@ -468,8 +474,8 @@ namespace Unity.FPS.Gameplay
                 m_WeaponHeatLevels[m_CurrentKey] = m_OverheatBehavior.HeatLevel;
                 m_WeaponOverheatStates[m_CurrentKey] = m_OverheatBehavior.IsOverheated;
                 m_WeaponSwitchTimes[m_CurrentKey] = Time.time;
-                m_WeaponHeatDecayRates[m_CurrentKey] = m_OverheatBehavior.HeatDecayRate;
-                m_WeaponCooldownThresholds[m_CurrentKey] = m_OverheatBehavior.OverheatCooldownThreshold;
+                m_WeaponHeatDecayRates[m_CurrentKey] = m_OverheatBehavior.RuntimeHeatDecayRate;
+                m_WeaponCooldownThresholds[m_CurrentKey] = m_OverheatBehavior.RuntimeCooldownThreshold;
             }
         }
         
@@ -700,6 +706,7 @@ namespace Unity.FPS.Gameplay
                     // set weapon stats from key data
                     weaponController.WeaponName = m_CurrentKey.KeyName;
                     weaponController.DelayBetweenShots = m_CurrentKey.FireRate;
+                    weaponController.ConfigureForSlowFireRate(); // Configure reverb if slow fire rate (e.g., Green key)
                     weaponController.BulletsPerShot = m_CurrentKey.ProjectilesPerShot;
                     weaponController.BulletSpreadAngle = m_CurrentKey.SpreadAngle;
                     weaponController.MuzzleFlashScale = m_CurrentKey.MuzzleFlashScale;
@@ -737,6 +744,12 @@ namespace Unity.FPS.Gameplay
                     
                     // keep automatic shooting for rapid fire
                     weaponController.ShootType = WeaponShootType.Automatic;
+                    
+                    // KEY WEAPONS USE HEAT SYSTEM, NOT AMMO - set infinite ammo
+                    weaponController.MaxAmmo = 999;
+                    weaponController.AutomaticReload = true;
+                    weaponController.AmmoReloadRate = 999f; // Instant reload
+                    weaponController.AmmoReloadDelay = 0f; // No delay
                     
                     // set up animator for shooting animations
                     var animator = m_CurrentWeaponModel.GetComponent<Animator>();
@@ -838,9 +851,6 @@ namespace Unity.FPS.Gameplay
                     
                     // Restore heat state if this weapon was previously used
                     RestoreWeaponHeat(m_CurrentKey);
-                    
-                    // Reset fire-hold flag when equipping (in case it was set from another weapon)
-                    m_FireHeldDuringOverheat = false;
                 }
                 else
                 {

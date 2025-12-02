@@ -125,6 +125,10 @@ namespace Unity.FPS.Game
 
         [Tooltip("sound played when shooting")]
         public AudioClip ShootSfx;
+        
+        [Tooltip("Volume multiplier for firing sound (multiplied by master firing volume)")]
+        [Range(0f, 5f)]
+        public float FiringSoundVolume = 1f;
 
         [Tooltip("Sound played when changing to this weapon")]
         public AudioClip ChangeWeaponSfx;
@@ -135,6 +139,8 @@ namespace Unity.FPS.Game
         public AudioClip ContinuousShootEndSfx;
         AudioSource m_ContinuousShootAudioSource = null;
         bool m_WantsToShoot = false;
+        
+        // Tap-fire responsiveness
 
         public UnityAction OnShoot;
         public event Action OnShootProcessed;
@@ -189,6 +195,20 @@ namespace Unity.FPS.Game
             m_ShootAudioSource = GetComponent<AudioSource>();
             DebugUtility.HandleErrorIfNullGetComponent<AudioSource, WeaponController>(m_ShootAudioSource, this,
                 gameObject);
+            
+            // Ensure AudioSource volume is set to 1.0 so PlayOneShot volume parameter works
+            if (m_ShootAudioSource != null)
+            {
+                m_ShootAudioSource.volume = 1f;
+                
+                // Ensure FiringSoundVolume has a valid value (can't be 0)
+                if (FiringSoundVolume <= 0f)
+                {
+                    FiringSoundVolume = 1f;
+                }
+            }
+            
+            // Note: Reverb setup is done in ConfigureForSlowFireRate() after DelayBetweenShots is set
 
             if (UseContinuousShootSound)
             {
@@ -334,14 +354,14 @@ namespace Unity.FPS.Game
                 {
                     if (!m_ContinuousShootAudioSource.isPlaying)
                     {
-                        m_ShootAudioSource.PlayOneShot(ShootSfx);
-                        m_ShootAudioSource.PlayOneShot(ContinuousShootStartSfx);
+                        m_ShootAudioSource.PlayOneShot(ShootSfx, FiringSoundVolume);
+                        m_ShootAudioSource.PlayOneShot(ContinuousShootStartSfx, FiringSoundVolume);
                         m_ContinuousShootAudioSource.Play();
                     }
                 }
                 else if (m_ContinuousShootAudioSource.isPlaying)
                 {
-                    m_ShootAudioSource.PlayOneShot(ContinuousShootEndSfx);
+                    m_ShootAudioSource.PlayOneShot(ContinuousShootEndSfx, FiringSoundVolume);
                     m_ContinuousShootAudioSource.Stop();
                 }
             }
@@ -370,6 +390,7 @@ namespace Unity.FPS.Game
         public bool HandleShootInputs(bool inputDown, bool inputHeld, bool inputUp)
         {
             m_WantsToShoot = inputDown || inputHeld;
+            
             switch (ShootType)
             {
                 case WeaponShootType.Manual:
@@ -409,12 +430,15 @@ namespace Unity.FPS.Game
 
         bool TryShoot()
         {
-            if (m_CurrentAmmo >= 1f
-                && m_LastTimeShot + DelayBetweenShots < Time.time)
+            bool canShoot = m_CurrentAmmo >= 1f;
+            float timeSinceLastShot = Time.time - m_LastTimeShot;
+            float requiredDelay = DelayBetweenShots;
+            
+            // Simple timing check - no special cases
+            if (canShoot && timeSinceLastShot >= requiredDelay)
             {
                 HandleShoot();
                 m_CurrentAmmo -= 1f;
-
                 return true;
             }
 
@@ -622,7 +646,42 @@ namespace Unity.FPS.Game
             // play shoot SFX
             if (ShootSfx && !UseContinuousShootSound)
             {
-                m_ShootAudioSource.PlayOneShot(ShootSfx);
+                // For fast-firing weapons (Orange/Yellow key), allow overlap
+                if (DelayBetweenShots < 0.15f)
+                {
+                    float masterVolume = GetKeyWeaponMasterVolume();
+                    m_ShootAudioSource.PlayOneShot(ShootSfx, FiringSoundVolume * masterVolume);
+                }
+                else
+                {
+                    // Stop any ongoing audio to prevent overlap/lingering sounds
+                    if (m_ShootAudioSource.isPlaying)
+                    {
+                        StopAllCoroutines(); // Stop any fade coroutines
+                        m_ShootAudioSource.Stop();
+                        m_ShootAudioSource.volume = 1f; // Reset volume after fade
+                    }
+                    
+                    // For Green key (slow fire rate ~2s), use Play() so we can fade it (preserves reverb tail)
+                    if (DelayBetweenShots > 1.5f)
+                    {
+                        m_ShootAudioSource.clip = ShootSfx;
+                        // Apply both per-weapon volume AND master firing volume from settings
+                        float masterVolume = GetKeyWeaponMasterVolume();
+                        m_ShootAudioSource.volume = FiringSoundVolume * masterVolume;
+                        m_ShootAudioSource.Play();
+                        
+                        // Fade out at 1.6s over 0.4s to preserve reverb tail
+                        StartCoroutine(FadeOutGreenKeyAudio(m_ShootAudioSource, 1.6f, 0.4f));
+                    }
+                    else
+                    {
+                        // Normal weapons: use PlayOneShot (simpler, works great with AudioMixer)
+                        float masterVolume = GetKeyWeaponMasterVolume();
+                        float finalVolume = FiringSoundVolume * masterVolume;
+                        m_ShootAudioSource.PlayOneShot(ShootSfx, finalVolume);
+                    }
+                }
             }
 
             // Trigger attack animation if there is any
@@ -643,5 +702,96 @@ namespace Unity.FPS.Game
 
             return spreadWorldDirection;
         }
+        
+        /// <summary>
+        /// Fades out Green key audio while continuously respecting volume slider changes
+        /// This allows reverb tail to decay naturally instead of cutting off abruptly
+        /// </summary>
+        System.Collections.IEnumerator FadeOutGreenKeyAudio(AudioSource source, float startTime, float fadeDuration)
+        {
+            float fadeStartTime = Time.time + startTime;
+            
+            // Before fade: continuously update volume based on slider changes
+            while (Time.time < fadeStartTime && source != null && source.isPlaying)
+            {
+                float masterVolume = GetKeyWeaponMasterVolume();
+                source.volume = FiringSoundVolume * masterVolume;
+                yield return null;
+            }
+            
+            // Check if still playing
+            if (source == null || !source.isPlaying)
+            {
+                yield break;
+            }
+            
+            // Start fade out - get the volume at fade start
+            float startVolume = source.volume;
+            float elapsed = 0f;
+            
+            // Fade from current volume to zero (allows reverb tail to continue)
+            while (elapsed < fadeDuration && source != null && source.isPlaying)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / fadeDuration;
+                
+                // Continue checking slider during fade (responsive to changes)
+                float masterVolume = GetKeyWeaponMasterVolume();
+                float targetVolume = FiringSoundVolume * masterVolume;
+                
+                // Fade from target volume to zero
+                source.volume = Mathf.Lerp(targetVolume, 0f, t);
+                yield return null;
+            }
+            
+            // Stop and reset
+            if (source != null)
+            {
+                source.Stop();
+                source.volume = 1f;
+            }
+        }
+        
+        // Cache for reflection-based volume access
+        private static System.Reflection.PropertyInfo s_FiringVolumeProperty;
+        private static bool s_ReflectionInitialized = false;
+        
+        /// <summary>
+        /// Get master firing volume from KeyWeaponAudioSettings
+        /// Uses reflection to access across assembly boundary
+        /// </summary>
+        float GetKeyWeaponMasterVolume()
+        {
+            // Initialize reflection once
+            if (!s_ReflectionInitialized)
+            {
+                s_ReflectionInitialized = true;
+                var settingsType = System.Type.GetType("Unity.FPS.Gameplay.KeyWeaponAudioSettings, fps.Gameplay");
+                if (settingsType != null)
+                {
+                    s_FiringVolumeProperty = settingsType.GetProperty("FiringVolume", 
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                }
+            }
+            
+            // Get volume directly via reflection (most reliable)
+            if (s_FiringVolumeProperty != null)
+            {
+                return (float)s_FiringVolumeProperty.GetValue(null);
+            }
+            
+            // Fallback to bridge if reflection failed
+            return KeyWeaponVolumeBridge.FiringVolume;
+        }
+        
+        /// <summary>
+        /// Call this after setting DelayBetweenShots to configure audio for slow-firing weapons
+        /// </summary>
+        public void ConfigureForSlowFireRate()
+        {
+            // Reserved for future slow fire rate weapon configuration
+            // Reverb removed as it was causing audio issues
+        }
+        
     }
 }

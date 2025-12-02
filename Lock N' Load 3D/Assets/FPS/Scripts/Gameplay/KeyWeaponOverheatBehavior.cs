@@ -51,8 +51,14 @@ namespace Unity.FPS.Gameplay
         [Header("Sound")]
         public AudioClip OverheatSound;
         public AudioClip CoolingSound;
-        [Range(0f, 1f)]
-        public float SoundVolume = 0.5f;
+        
+        [Tooltip("Volume for overheat sound (multiplied by master overheat volume)")]
+        [Range(0f, 5f)]
+        public float OverheatSoundVolume = 0.5f;
+        
+        [Tooltip("Volume for cooling sound (multiplied by master cooling volume)")]
+        [Range(0f, 5f)]
+        public float CoolingSoundVolume = 0.5f;
 
         [Header("Animation")]
         public float OverheatLiftAmount = 0.08f;
@@ -70,6 +76,10 @@ namespace Unity.FPS.Gameplay
         public bool IsCooling { get; private set; } = false;
         public Vector3 OverheatPositionOffset { get; private set; } = Vector3.zero;
         public Quaternion OverheatRotationOffset { get; private set; } = Quaternion.identity;
+        
+        // Expose runtime threshold values for external access
+        public float RuntimeHeatDecayRate => m_HeatDecayRate;
+        public float RuntimeCooldownThreshold => m_OverheatCooldownThreshold;
 
         // Private state
         WeaponController m_WeaponController;
@@ -175,10 +185,13 @@ namespace Unity.FPS.Gameplay
 
         void SetupAudio()
         {
+            // Always create a NEW AudioSource for overheat/cooling (don't share with firing sounds)
             m_AudioSource = gameObject.AddComponent<AudioSource>();
+            
             m_AudioSource.playOnAwake = false;
             m_AudioSource.loop = false;
             m_AudioSource.spatialBlend = 0f;
+            m_AudioSource.volume = 1f; // Set base volume to 1.0
             
             var audioGroup = AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.WeaponOverheat);
             if (audioGroup != null)
@@ -275,15 +288,42 @@ namespace Unity.FPS.Gameplay
         {
             if (m_AudioSource == null) return;
 
+            // Overheat sound - plays while overheated, fades out as heat decreases
+            if (OverheatSound != null)
+            {
+                bool shouldPlayOverheat = IsOverheated && HeatLevel > 0.1f;
+
+                if (shouldPlayOverheat && !m_AudioSource.isPlaying)
+                {
+                    m_AudioSource.clip = OverheatSound;
+                    m_AudioSource.loop = true;
+                    m_AudioSource.volume = OverheatSoundVolume * KeyWeaponAudioSettings.OverheatVolume * HeatLevel;
+                    m_AudioSource.Play();
+                    m_PlayedOverheatSound = true;
+                }
+                else if (!shouldPlayOverheat && m_AudioSource.isPlaying && m_AudioSource.clip == OverheatSound)
+                {
+                    m_AudioSource.Stop();
+                    m_AudioSource.loop = false;
+                }
+                else if (m_AudioSource.isPlaying && m_AudioSource.clip == OverheatSound)
+                {
+                    // Fade volume based on heat level
+                    m_AudioSource.volume = OverheatSoundVolume * KeyWeaponAudioSettings.OverheatVolume * HeatLevel;
+                }
+            }
+
+            // Cooling sound - plays during normal cooling (not overheated)
             if (CoolingSound != null)
             {
                 bool shouldPlayCooling = IsCooling && !IsOverheated && HeatLevel > 0.1f;
 
-                if (shouldPlayCooling && !m_AudioSource.isPlaying)
+                if (shouldPlayCooling && (!m_AudioSource.isPlaying || m_AudioSource.clip != CoolingSound))
                 {
+                    m_AudioSource.Stop(); // Stop overheat sound if playing
                     m_AudioSource.clip = CoolingSound;
                     m_AudioSource.loop = true;
-                    m_AudioSource.volume = SoundVolume * HeatLevel;
+                    m_AudioSource.volume = CoolingSoundVolume * KeyWeaponAudioSettings.CoolingVolume * HeatLevel;
                     m_AudioSource.Play();
                 }
                 else if (!shouldPlayCooling && m_AudioSource.isPlaying && m_AudioSource.clip == CoolingSound)
@@ -293,15 +333,10 @@ namespace Unity.FPS.Gameplay
                 }
                 else if (m_AudioSource.isPlaying && m_AudioSource.clip == CoolingSound)
                 {
-                    m_AudioSource.volume = SoundVolume * HeatLevel;
+                    m_AudioSource.volume = CoolingSoundVolume * KeyWeaponAudioSettings.CoolingVolume * HeatLevel;
                 }
             }
 
-            if (IsOverheated && !m_PlayedOverheatSound && OverheatSound != null)
-            {
-                m_AudioSource.PlayOneShot(OverheatSound, SoundVolume);
-                m_PlayedOverheatSound = true;
-            }
         }
 
         void UpdateOverheatAnimation()
@@ -320,7 +355,27 @@ namespace Unity.FPS.Gameplay
         {
             if (m_WeaponController != null)
             {
-                m_WeaponController.SetAmmoRatio(1f - HeatLevel);
+                // UI bar shows "usable capacity" not just heat
+                // When overheated, bar stays at 0 until heat drops below threshold
+                // This makes it clear when you can shoot again
+                float uiRatio;
+                
+                if (IsOverheated)
+                {
+                    // While overheated, show cooldown progress from 0 to 1
+                    // Heat at 100% = bar at 0%, Heat at threshold = bar at 100%
+                    float cooldownProgress = Mathf.InverseLerp(1f, m_OverheatCooldownThreshold, HeatLevel);
+                    uiRatio = cooldownProgress;
+                }
+                else
+                {
+                    // Normal operation: show remaining capacity before overheat
+                    // Remap 0-100% heat to account for the threshold "dead zone"
+                    // Heat at 0% = bar at 100%, Heat at 100% = bar at 0%
+                    uiRatio = 1f - HeatLevel;
+                }
+                
+                m_WeaponController.SetAmmoRatio(uiRatio);
             }
         }
 

@@ -16,7 +16,7 @@ MonoBehaviour:
   KeyColor: {r: 0.5, g: 0, b: 0.5, a: 1}
   KeyIcon: {fileID: 21300000, guid: 7b7fe3b989a2fd6419c07e4c1a088417, type: 3}
   KeyIconGlow: {fileID: 21300000, guid: 2f4bafd5be603cb43935a1446e64b924, type: 3}
-  Damage: 100
+  Damage: 30
   FireRate: 0.8
   ProjectileSpeed: 20
   MovementSpeedMultiplier: 0.8
@@ -26,7 +26,7 @@ MonoBehaviour:
   ProjectilesPerShot: 1
   SpreadAngle: 0
   SpecialAbility: 3
-  AbilityPower: 5
+  AbilityPower: 0.5
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: 283003e74ce1a80428a7b97730cc0df4,
     type: 3}
   MuzzleFlashScale: 1
@@ -35,9 +35,11 @@ MonoBehaviour:
   CrosshairSize: 55
   CrosshairColor: {r: 1, g: 1, b: 1, a: 1}
   ProjectileTravelSound: {fileID: 0}
-  ProjectileImpactSound: {fileID: 0}
+  ProjectileImpactSound: {fileID: 8300000, guid: 09afa832eb119424e96b69fb467bbe26,
+    type: 3}
   TravelSoundVolume: 0.5
   ImpactSoundVolume: 1
+  ExplosionRadius: 3.5
   MaxShakeDistance: 25
   ShakeIntensity: 1
   ShakeDuration: 0.3

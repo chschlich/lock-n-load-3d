@@ -331,13 +331,36 @@ namespace Unity.FPS.Gameplay
                 // Only play default ImpactSfxClip if key audio doesn't have its own impact clip
                 if (keyAudio.GetImpactClip() == null && ImpactSfxClip)
                 {
-                    AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 3f);
+                    // Apply impact volume from settings for key weapons
+                    float impactVolume = KeyWeaponAudioSettings.ImpactVolume;
+                    // Increased rolloff from 3f to 50f for better audibility
+                    AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 50f, impactVolume);
                 }
             }
             else if (ImpactSfxClip)
             {
-                // Standard projectile - use default impact sound
-                AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 3f);
+                // Check if this projectile belongs to the player (key weapon)
+                if (m_ProjectileBase != null && m_ProjectileBase.Owner != null)
+                {
+                    var playerController = m_ProjectileBase.Owner.GetComponent<PlayerCharacterController>();
+                    if (playerController != null)
+                    {
+                        // Player projectile - apply impact volume from settings
+                        float impactVolume = KeyWeaponAudioSettings.ImpactVolume;
+                        // Increased rolloff from 3f to 50f for better audibility
+                        AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 50f, impactVolume);
+                    }
+                    else
+                    {
+                        // Non-player projectile - use normal volume
+                        AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 50f);
+                    }
+                }
+                else
+                {
+                    // Unknown owner - use normal volume
+                    AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 50f);
+                }
             }
 
             // Self Destruct

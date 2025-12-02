@@ -262,8 +262,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7047007884877711581}
-  - component: {fileID: 7047007884877711582}
-  - component: {fileID: 7047007884877711590}
+  - component: {fileID: 8252843939639468962}
+  - component: {fileID: 1946248593273435631}
+  - component: {fileID: 367003225748478678}
   - component: {fileID: 7047007884877711583}
   - component: {fileID: 7047007884877711584}
   - component: {fileID: 7047007884877711585}
@@ -271,6 +272,7 @@ GameObject:
   - component: {fileID: 7047007884877711587}
   - component: {fileID: 7047007884877711588}
   - component: {fileID: 3888053058381409200}
+  - component: {fileID: -6878742318817220552}
   m_Layer: 0
   m_Name: YellowLocklet
   m_TagString: Enemy
@@ -295,8 +297,8 @@ Transform:
   - {fileID: 1464687048468465741}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &7047007884877711582
-CapsuleCollider:
+--- !u!65 &8252843939639468962
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -310,15 +312,13 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 1.5
-  m_Height: 4
-  m_Direction: 1
-  m_Center: {x: 0, y: 2, z: 0}
---- !u!136 &7047007884877711590
+  serializedVersion: 3
+  m_Size: {x: 2.7036953, y: 2.7054136, z: 2.0494242}
+  m_Center: {x: -0.003945112, y: 0.0002924204, z: 0.00980401}
+--- !u!136 &1946248593273435631
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -337,10 +337,31 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.8
-  m_Height: 3.5
+  m_Radius: 0.8693134
+  m_Height: 2.106117
   m_Direction: 1
-  m_Center: {x: 0, y: 1.75, z: 0}
+  m_Center: {x: 0.006190717, y: 1.8242115, z: 0}
+--- !u!135 &367003225748478678
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2609929735931618662}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 2.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!195 &7047007884877711583
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -351,7 +372,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 1
-  m_Speed: 3.5
+  m_Speed: 4
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -375,7 +396,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e27364eefd6dd0341ba72a3bfc0d9727, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MaxHealth: 50
+  MaxHealth: 100
   CriticalHealthRatio: 0.3
 --- !u!114 &7047007884877711585
 MonoBehaviour:
@@ -417,13 +438,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b83e8ec0a3bb6e4684ebca47b3b5f1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DetectionRange: 15
+  DetectionRange: 50
   AttackRange: 2
-  MoveSpeed: 3.5
+  MoveSpeed: 4
   PatrolSpeed: 2
   StoppingDistance: 0.8
   PatrolPath: {fileID: 0}
-  DeathDuration: 2
+  DeathDuration: 1.5
+  DeathVfx: {fileID: 8950624839484268180, guid: 650a2483f01e5844da4197269e2f8aa8,
+    type: 3}
+  DeathVfxScale: 3
+  BodyMaterial: {fileID: 0}
+  OnHitBodyGradient:
+    serializedVersion: 2
+    key0: {r: 0, g: 0, b: 0, a: 1}
+    key1: {r: 1, g: 1, b: 1, a: 1}
+    key2: {r: 1, g: 1, b: 1, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 13878
+    ctime2: 54356
+    ctime3: 65535
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 1
+    m_ColorSpace: -1
+    m_NumColorKeys: 4
+    m_NumAlphaKeys: 2
+  FlashOnHitDuration: 0.125
+  DeathFlashInterval: 0.3
+  DeathFlashSound: {fileID: 0}
 --- !u!114 &7047007884877711588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -454,6 +512,23 @@ MonoBehaviour:
   HealthBarImage: {fileID: 4032324745828575994}
   HealthBarPivot: {fileID: 1464687048468465741}
   HideFullHealthBar: 0
+--- !u!114 &-6878742318817220552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2609929735931618662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36f4700ff385a3a438e016ab6f9e3ecc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: fps.AI::Unity.FPS.AI.LockletAudioController
+  HitmarkerSound: {fileID: 8300000, guid: ff0139113e98afe4aa5eda683c7e8c3c, type: 3}
+  HitmarkerVolume: 4.5
+  StatusIndicatorSound: {fileID: 8300000, guid: 1f107687413f47440b0df8c4e45aff18,
+    type: 3}
+  StatusIndicatorVolume: 5
 --- !u!1 &4017620558247561155
 GameObject:
   m_ObjectHideFlags: 0

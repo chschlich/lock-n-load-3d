@@ -11,19 +11,12 @@ namespace Unity.FPS.Gameplay
     public class KeyWeaponSwapAudio : MonoBehaviour
     {
         [Header("Swap Sounds")]
-        [Tooltip("Sound played when weapon is put away (stowed)")]
-        public AudioClip PutAwaySound;
-        
         [Tooltip("Sound played when weapon is pulled out (drawn)")]
         public AudioClip PullOutSound;
         
         [Header("Volumes")]
-        [Tooltip("Volume for put-away sound")]
-        [Range(0f, 1f)]
-        public float PutAwayVolume = 1f;
-        
         [Tooltip("Volume for pull-out sound")]
-        [Range(0f, 1f)]
+        [Range(0f, 5f)]
         public float PullOutVolume = 1f;
 
         private AudioSource m_AudioSource;
@@ -45,24 +38,15 @@ namespace Unity.FPS.Gameplay
         }
 
         /// <summary>
-        /// Play the put-away sound when weapon is being stowed
-        /// </summary>
-        public void PlayPutAwaySound()
-        {
-            if (PutAwaySound != null && m_AudioSource != null)
-            {
-                m_AudioSource.PlayOneShot(PutAwaySound, PutAwayVolume);
-            }
-        }
-
-        /// <summary>
         /// Play the pull-out sound when weapon is being drawn
         /// </summary>
         public void PlayPullOutSound()
         {
             if (PullOutSound != null && m_AudioSource != null)
             {
-                m_AudioSource.PlayOneShot(PullOutSound, PullOutVolume);
+                // Apply master pull out volume from settings
+                float finalVolume = PullOutVolume * KeyWeaponAudioSettings.PullOutVolume;
+                m_AudioSource.PlayOneShot(PullOutSound, finalVolume);
             }
         }
     }

@@ -45,7 +45,8 @@ namespace Unity.FPS.Gameplay
             if (travelClip != null && m_TravelAudioSource != null)
             {
                 m_TravelAudioSource.clip = travelClip;
-                m_TravelAudioSource.volume = travelVolume;
+                // Apply master projectile travel volume from settings
+                m_TravelAudioSource.volume = travelVolume * KeyWeaponAudioSettings.ProjectileTravelVolume;
                 m_TravelAudioSource.Play();
             }
         }
@@ -58,7 +59,10 @@ namespace Unity.FPS.Gameplay
         {
             if (m_ImpactClip != null)
             {
-                AudioUtility.CreateSFX(m_ImpactClip, position, AudioUtility.AudioGroups.Impact, m_ImpactVolume, 3f);
+                // Apply master impact volume from settings
+                float finalVolume = m_ImpactVolume * KeyWeaponAudioSettings.ImpactVolume;
+                // Increased rolloff from 3f to 50f for better audibility
+                AudioUtility.CreateSFX(m_ImpactClip, position, AudioUtility.AudioGroups.Impact, 1f, 50f, finalVolume);
             }
         }
 

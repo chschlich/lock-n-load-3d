@@ -13,14 +13,25 @@ namespace Unity.FPS.Gameplay
 
         [Tooltip("Start sending notification about remaining enemies when this amount of enemies is left")]
         public int NotificationEnemiesRemainingThreshold = 3;
+        
+        [Tooltip("If true, waits for wave system to complete all waves before completing objective")]
+        public bool UseWaveSystem = true;
 
         int m_KillTotal;
+        WaveManager m_WaveManager;
 
         protected override void Start()
         {
             base.Start();
 
             EventManager.AddListener<EnemyKillEvent>(OnEnemyKilled);
+            EventManager.AddListener<AllWavesCompleteEvent>(OnAllWavesComplete);
+            
+            // Find wave manager if using wave system
+            if (UseWaveSystem)
+            {
+                m_WaveManager = FindFirstObjectByType<WaveManager>();
+            }
 
             // set a title and description specific for this type of objective, if it hasn't one
             if (string.IsNullOrEmpty(Title))
@@ -28,7 +39,7 @@ namespace Unity.FPS.Gameplay
                         " enemies";
 
             if (string.IsNullOrEmpty(Description))
-                Description = GetUpdatedCounterAmount();
+                Description = UseWaveSystem ? "Survive all waves" : GetUpdatedCounterAmount();
         }
 
         void OnEnemyKilled(EnemyKillEvent evt)
@@ -37,6 +48,15 @@ namespace Unity.FPS.Gameplay
                 return;
 
             m_KillTotal++;
+            
+            // If using wave system, don't complete based on remaining count
+            // The AllWavesCompleteEvent will handle completion
+            if (UseWaveSystem && m_WaveManager != null)
+            {
+                // Just update the kill count display, don't complete
+                UpdateObjective(string.Empty, GetUpdatedCounterAmount(), string.Empty);
+                return;
+            }
 
             if (MustKillAllEnemies)
                 KillsToCompleteObjective = evt.RemainingEnemyCount + m_KillTotal;
@@ -65,15 +85,29 @@ namespace Unity.FPS.Gameplay
                 UpdateObjective(string.Empty, GetUpdatedCounterAmount(), notificationText);
             }
         }
+        
+        void OnAllWavesComplete(AllWavesCompleteEvent evt)
+        {
+            if (IsCompleted)
+                return;
+                
+            // All waves complete - now complete the objective
+            CompleteObjective(string.Empty, GetUpdatedCounterAmount(), "All waves cleared!");
+        }
 
         string GetUpdatedCounterAmount()
         {
+            if (UseWaveSystem && m_WaveManager != null)
+            {
+                return $"Wave {m_WaveManager.CurrentWave + 1} - Kills: {m_KillTotal}";
+            }
             return m_KillTotal + " / " + KillsToCompleteObjective;
         }
 
         void OnDestroy()
         {
             EventManager.RemoveListener<EnemyKillEvent>(OnEnemyKilled);
+            EventManager.RemoveListener<AllWavesCompleteEvent>(OnAllWavesComplete);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Solution>
+  <Project Path="fps.Gameplay.csproj" />
   <Project Path="fps.UI.csproj" />
   <Project Path="fps.Game.csproj" />
-  <Project Path="fps.Gameplay.csproj" />
   <Project Path="NavMeshComponents.csproj" />
   <Project Path="fps.AI.csproj" />
   <Project Path="fps.Editor.csproj" />
