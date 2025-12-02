@@ -240,9 +240,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16d80974603b29d47beae40bad9dc2b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: fps.Gameplay::Unity.FPS.Gameplay.KeyWeaponOverheatBehavior
-  HeatPerShot: 0.55
-  HeatDecayRate: 0.15
-  OverheatCooldownThreshold: 0.06
+  HeatPerShot: 0.6
+  HeatDecayRate: 0.1
+  OverheatCooldownThreshold: 0.01
   EmissionIntensity: 1
   HotColor: {r: 1, g: 0.07450981, b: 0, a: 1}
   SteamVfxPrefab: {fileID: 4134168188543666222, guid: f77e2130c96652640accf8b9f6990d6b,
@@ -268,7 +268,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PullOutSound: {fileID: 8300000, guid: 8730e53463035cf4fbe37200511e2c7a, type: 3}
-  PullOutVolume: 2
+  PullOutVolume: 2.5
 --- !u!1 &8088409166493606719
 GameObject:
   m_ObjectHideFlags: 0

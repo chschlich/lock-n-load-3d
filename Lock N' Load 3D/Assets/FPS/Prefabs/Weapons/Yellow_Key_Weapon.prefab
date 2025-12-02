@@ -267,7 +267,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PullOutSound: {fileID: 8300000, guid: 763ab57f7dcb63f4390171da9e2b0e29, type: 3}
-  PullOutVolume: 1.8
+  PullOutVolume: 2
 --- !u!1 &8088409166493606719
 GameObject:
   m_ObjectHideFlags: 0

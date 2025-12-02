@@ -273,6 +273,7 @@ GameObject:
   - component: {fileID: 7047007884877711588}
   - component: {fileID: 3888053058381409200}
   - component: {fileID: -6878742318817220552}
+  - component: {fileID: 6284454064902585835}
   m_Layer: 0
   m_Name: YellowLocklet
   m_TagString: Enemy
@@ -525,10 +526,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: fps.AI::Unity.FPS.AI.LockletAudioController
   HitmarkerSound: {fileID: 8300000, guid: ff0139113e98afe4aa5eda683c7e8c3c, type: 3}
-  HitmarkerVolume: 4.5
+  HitmarkerVolume: 2
   StatusIndicatorSound: {fileID: 8300000, guid: 1f107687413f47440b0df8c4e45aff18,
     type: 3}
   StatusIndicatorVolume: 5
+--- !u!114 &6284454064902585835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2609929735931618662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14b7698ec50c85c44a849a968dc1d57d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: fps.UI::Unity.FPS.UI.CompassElement
+  CompassMarkerPrefab: {fileID: 4125838790012652590, guid: 513785daf84f2a243b0cda079e6835cd,
+    type: 3}
+  TextDirection: 
 --- !u!1 &4017620558247561155
 GameObject:
   m_ObjectHideFlags: 0

@@ -70,6 +70,10 @@ namespace Unity.FPS.AI
         [Tooltip("Optional sound effect played at each death flash (leave empty for no sound)")]
         public AudioClip DeathFlashSound;
 
+        // Events for compass UI integration (matches EnemyController interface)
+        public UnityEngine.Events.UnityAction onDetectedTarget;
+        public UnityEngine.Events.UnityAction onLostTarget;
+
         private NavMeshAgent m_NavMeshAgent;
         private Health m_Health;
         private Actor m_Actor;
@@ -227,6 +231,8 @@ namespace Unity.FPS.AI
 
         void DetectTarget()
         {
+            bool hadTarget = m_Target != null;
+            
             // find player via ActorsManager
             if (m_Target == null && m_ActorsManager != null && m_ActorsManager.Player != null)
             {
@@ -236,6 +242,12 @@ namespace Unity.FPS.AI
                 if (distanceToPlayer <= DetectionRange)
                 {
                     m_Target = player;
+                    
+                    // Fire detected event for compass UI
+                    if (!hadTarget)
+                    {
+                        onDetectedTarget?.Invoke();
+                    }
                 }
             }
             else if (m_Target != null)
@@ -245,6 +257,9 @@ namespace Unity.FPS.AI
                 if (distanceToPlayer > DetectionRange * 1.5f)
                 {
                     m_Target = null;
+                    
+                    // Fire lost target event for compass UI
+                    onLostTarget?.Invoke();
                 }
             }
         }

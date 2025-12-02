@@ -80,6 +80,15 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Override locklet health")]
         public float LockletHealth = 100f;
         
+        [Header("Locklet Audio Override")]
+        [Tooltip("Override hitmarker sound volume (0-10x multiplier)")]
+        [Range(0f, 10f)]
+        public float LockletHitmarkerVolume = 1f;
+        
+        [Tooltip("Override status indicator sound volume (0-10x multiplier)")]
+        [Range(0f, 10f)]
+        public float LockletStatusIndicatorVolume = 1f;
+        
         // Public state
         public int CurrentWave { get; private set; } = 0;
         public int EnemiesSpawned { get; private set; } = 0;
@@ -325,6 +334,25 @@ namespace Unity.FPS.Gameplay
                         detectionField.SetValue(component, LockletDetectionRange);
                     if (speedField != null)
                         speedField.SetValue(component, LockletMoveSpeed);
+                    
+                    break;
+                }
+            }
+            
+            // Get LockletAudioController and apply audio volume overrides
+            foreach (var component in enemy.GetComponents<MonoBehaviour>())
+            {
+                var type = component.GetType();
+                if (type.Name == "LockletAudioController")
+                {
+                    // Use reflection to set audio volumes
+                    var hitmarkerVolumeField = type.GetField("HitmarkerVolume");
+                    var statusVolumeField = type.GetField("StatusIndicatorVolume");
+                    
+                    if (hitmarkerVolumeField != null)
+                        hitmarkerVolumeField.SetValue(component, LockletHitmarkerVolume);
+                    if (statusVolumeField != null)
+                        statusVolumeField.SetValue(component, LockletStatusIndicatorVolume);
                     
                     break;
                 }
