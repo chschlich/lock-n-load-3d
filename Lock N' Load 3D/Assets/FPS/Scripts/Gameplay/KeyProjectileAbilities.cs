@@ -269,6 +269,9 @@ namespace Unity.FPS.Gameplay
     public class TeleportProjectile : MonoBehaviour
     {
         public GameObject Player;
+        public float WarpFOVAmount = 20f;
+        public float WarpDuration = 0.3f;
+        
         private bool m_HasTeleported = false;
         private Vector3 m_HitPosition;
         private bool m_HasHitPosition = false;
@@ -316,6 +319,12 @@ namespace Unity.FPS.Gameplay
                         
                         m_HasTeleported = true;
                         Debug.Log($"Teleported player to {safePosition}, new position: {Player.transform.position}");
+                        
+                        // apply fov warp effect
+                        if (controller.PlayerCamera != null)
+                        {
+                            controller.StartCoroutine(ApplyWarpEffect(controller.PlayerCamera));
+                        }
                     }
                     else
                     {
@@ -327,6 +336,35 @@ namespace Unity.FPS.Gameplay
                     Debug.LogError("TeleportProjectile: PlayerCharacterController or CharacterController not found!");
                 }
             }
+        }
+        
+        System.Collections.IEnumerator ApplyWarpEffect(Camera camera)
+        {
+            float originalFOV = camera.fieldOfView;
+            float targetFOV = originalFOV + WarpFOVAmount;
+            float elapsed = 0f;
+            
+            // warp out (increase fov)
+            while (elapsed < WarpDuration * 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / (WarpDuration * 0.5f);
+                camera.fieldOfView = Mathf.Lerp(originalFOV, targetFOV, t);
+                yield return null;
+            }
+            
+            // warp back (return to normal fov)
+            elapsed = 0f;
+            while (elapsed < WarpDuration * 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / (WarpDuration * 0.5f);
+                camera.fieldOfView = Mathf.Lerp(targetFOV, originalFOV, t);
+                yield return null;
+            }
+            
+            // ensure we end at exactly the original fov
+            camera.fieldOfView = originalFOV;
         }
         
         /// <summary>

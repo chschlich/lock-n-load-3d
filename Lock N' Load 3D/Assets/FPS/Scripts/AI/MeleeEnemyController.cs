@@ -2,6 +2,7 @@ using Unity.FPS.Game;
 using Unity.FPS.Gameplay;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Reflection;
 
 namespace Unity.FPS.AI
 {
@@ -82,6 +83,9 @@ namespace Unity.FPS.AI
         private Animator m_Animator;
         private ActorsManager m_ActorsManager;
         private EnemyManager m_EnemyManager;
+        private Component m_EyesController;
+        private MethodInfo m_LookAtMethod;
+        private bool m_IsPlayingWalkAnimation = false;
         
         private System.Collections.Generic.List<RendererIndexData> m_BodyRenderers = new System.Collections.Generic.List<RendererIndexData>();
         private MaterialPropertyBlock m_BodyFlashMaterialPropertyBlock;
@@ -100,6 +104,19 @@ namespace Unity.FPS.AI
             m_Actor = GetComponent<Actor>();
             m_NavMeshAgent = GetComponent<NavMeshAgent>();
             m_Animator = GetComponentInChildren<Animator>();
+            
+            // try to find lockleteyescontroller component
+            var allComponents = GetComponentsInChildren<MonoBehaviour>();
+            foreach (var comp in allComponents)
+            {
+                if (comp.GetType().Name == "LockletEyesController")
+                {
+                    m_EyesController = comp;
+                    m_LookAtMethod = comp.GetType().GetMethod("LookAt");
+                    break;
+                }
+            }
+            
             m_ActorsManager = FindAnyObjectByType<ActorsManager>();
             m_EnemyManager = FindAnyObjectByType<EnemyManager>();
 
@@ -208,6 +225,12 @@ namespace Unity.FPS.AI
                 if (m_Animator != null)
                 {
                     m_Animator.SetFloat("Speed", 1f);
+                }
+                
+                // make eyes follow the player
+                if (m_EyesController != null && m_LookAtMethod != null)
+                {
+                    m_LookAtMethod.Invoke(m_EyesController, new object[] { m_Target.transform.position });
                 }
             }
             else if (PatrolPath != null)
