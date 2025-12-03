@@ -44,7 +44,7 @@ namespace Unity.FPS.AI
         public int BaseSpawnCount = 1;
 
         [Tooltip("Number of minions spawned per cycle at low health")]
-        public int MaxSpawnCount = 5;
+        public int MaxSpawnCount = 3;
 
         [Header("Minion Settings")]
         [Tooltip("Scale of spawned minions")]
