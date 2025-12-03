@@ -291,8 +291,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.33, y: 0.33, z: 0.33}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4106976931657864111}
   - {fileID: 1464687048468465741}
@@ -530,6 +530,17 @@ MonoBehaviour:
   StatusIndicatorSound: {fileID: 8300000, guid: 1f107687413f47440b0df8c4e45aff18,
     type: 3}
   StatusIndicatorVolume: 5
+  FootstepSound: {fileID: 8300000, guid: 1f4349f40a872d34ab72c760a039a212, type: 3}
+  FootstepVolume: 0.5
+  FootstepMaxDistance: 50
+  EnableFootstepShake: 0
+  MaxShakeDistance: 10
+  ShakeIntensity: 0.05
+  ShakeDuration: 0.1
+  WalkStateName: Walk
+  FootstepTiming1: 0.05
+  FootstepTiming2: 0.5
+  DebugAnimationTiming: 0
 --- !u!114 &6284454064902585835
 MonoBehaviour:
   m_ObjectHideFlags: 0

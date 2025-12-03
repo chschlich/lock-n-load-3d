@@ -43,7 +43,9 @@ namespace Unity.FPS.Gameplay
             new Vector3(-13f, 0f, -5f),   // North center
             new Vector3(-13f, 0f, -25f),  // South center
             new Vector3(-23f, 0f, -15f),  // West center
-            new Vector3(-3f, 0f, -15f)    // East center
+            new Vector3(-3f, 0f, -15f),   // East center
+            // Room 2 center (for boss wave)
+            new Vector3(-13f, 0f, -15f)   // Center of room
         };
         
         [Header("Debug Visualization")]
@@ -56,6 +58,16 @@ namespace Unity.FPS.Gameplay
         [Header("Enemy Prefab")]
         [Tooltip("The locklet prefab to spawn")]
         public GameObject EnemyPrefab;
+        
+        [Header("Ole Locklet (Boss Wave)")]
+        [Tooltip("The Ole Locklet boss prefab")]
+        public GameObject OleLockletPrefab;
+        
+        [Tooltip("Which wave is the boss wave (0-indexed, default 2 = Wave 3)")]
+        public int BossWaveIndex = 2;
+        
+        [Tooltip("Where to spawn the boss")]
+        public Vector3 BossSpawnPosition = new Vector3(-13f, 0f, -15f);
         
         [Header("Spawn Settings")]
         [Tooltip("Random position offset around spawn point")]
@@ -80,14 +92,54 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Override locklet health")]
         public float LockletHealth = 100f;
         
-        [Header("Locklet Audio Override")]
-        [Tooltip("Override hitmarker sound volume (0-10x multiplier)")]
+        [Header("Locklet Audio - Hitmarker")]
+        [Tooltip("Sound played when locklet takes damage")]
+        public AudioClip LockletHitmarkerSound;
+        
+        [Tooltip("Volume for hitmarker sound")]
         [Range(0f, 10f)]
         public float LockletHitmarkerVolume = 1f;
         
-        [Tooltip("Override status indicator sound volume (0-10x multiplier)")]
+        [Header("Locklet Audio - Death Status")]
+        [Tooltip("Sound played during death flash cycles")]
+        public AudioClip LockletStatusIndicatorSound;
+        
+        [Tooltip("Volume for status indicator sound")]
         [Range(0f, 10f)]
         public float LockletStatusIndicatorVolume = 1f;
+        
+        [Tooltip("Maximum audible distance for status indicator sounds")]
+        [Range(10f, 500f)]
+        public float LockletStatusIndicatorMaxDistance = 250f;
+        
+        [Header("Locklet Audio - Footsteps")]
+        [Tooltip("Footstep sound for spawned locklets")]
+        public AudioClip LockletFootstepSound;
+        
+        [Tooltip("Footstep volume")]
+        [Range(0f, 5f)]
+        public float LockletFootstepVolume = 0.5f;
+        
+        [Tooltip("Maximum audible distance for footstep sounds")]
+        [Range(10f, 200f)]
+        public float LockletFootstepMaxDistance = 50f;
+        
+        [Header("Locklet Audio - Screen Shake")]
+        [Tooltip("Enable screen shake for nearby players when footsteps occur")]
+        public bool LockletEnableFootstepShake = false;
+        
+        [Tooltip("Maximum distance from locklet that can cause screen shake")]
+        [Range(1f, 50f)]
+        public float LockletMaxShakeDistance = 10f;
+        
+        [Tooltip("Base shake intensity at locklet position")]
+        [Range(0f, 1f)]
+        public float LockletShakeIntensity = 0.05f;
+        
+        [Tooltip("Duration of the shake effect in seconds")]
+        [Range(0.05f, 0.5f)]
+        public float LockletShakeDuration = 0.1f;
+        
         
         // Public state
         public int CurrentWave { get; private set; } = 0;
@@ -100,6 +152,8 @@ namespace Unity.FPS.Gameplay
         // Private state
         private List<Coroutine> m_SpawnCoroutines = new List<Coroutine>();
         private int m_EnemiesRemainingToSpawn;
+        private bool m_IsBossWave = false;
+        private GameObject m_BossInstance = null;
         
         void Awake()
         {
@@ -187,6 +241,13 @@ namespace Unity.FPS.Gameplay
             
             EnemiesKilled++;
             
+            // For boss waves, check if all enemies (boss + minions) are dead
+            if (m_IsBossWave)
+            {
+                CheckBossWaveComplete();
+                return;
+            }
+            
             // Check if wave is complete (all enemies spawned AND killed)
             if (EnemiesKilled >= TotalEnemiesThisWave && m_EnemiesRemainingToSpawn <= 0)
             {
@@ -206,6 +267,13 @@ namespace Unity.FPS.Gameplay
                 
                 // Note: Victory is triggered by AllWavesCompleteEvent, not AllObjectivesCompletedEvent
                 // to avoid conflict with existing objective system
+                return;
+            }
+            
+            // Check if this is a boss wave
+            if (CurrentWave == BossWaveIndex && OleLockletPrefab != null)
+            {
+                StartBossWave();
                 return;
             }
             
@@ -240,6 +308,78 @@ namespace Unity.FPS.Gameplay
             }
         }
         
+        void StartBossWave()
+        {
+            // Reset wave state for boss wave
+            EnemiesSpawned = 1;
+            EnemiesKilled = 0;
+            TotalEnemiesThisWave = 1; // Just the boss initially - minions will add dynamically
+            m_EnemiesRemainingToSpawn = 0;
+            IsWaveActive = true;
+            m_IsBossWave = true;
+            
+            // Broadcast wave start event
+            WaveStartEvent waveStartEvent = Events.WaveStartEvent;
+            waveStartEvent.WaveNumber = CurrentWave + 1;
+            waveStartEvent.TotalEnemies = 1; // Display as 1 enemy (the boss)
+            EventManager.Broadcast(waveStartEvent);
+            
+            Debug.Log($"Wave {CurrentWave + 1} (BOSS WAVE) starting: Ole Locklet!");
+            
+            // Spawn Ole Locklet
+            GameObject boss = Instantiate(OleLockletPrefab, BossSpawnPosition, Quaternion.identity);
+            m_BossInstance = boss;
+            
+            // Track boss death
+            var health = boss.GetComponent<Health>();
+            if (health != null)
+            {
+                health.OnDie += OnBossDied;
+            }
+        }
+        
+        void OnBossDied()
+        {
+            m_BossInstance = null;
+            Debug.Log("Ole Locklet defeated! Waiting for remaining minions...");
+            
+            // Check if wave should complete (boss dead + all minions dead)
+            CheckBossWaveComplete();
+        }
+        
+        void CheckBossWaveComplete()
+        {
+            if (!m_IsBossWave || !IsWaveActive) return;
+            
+            // Get current enemy count from EnemyManager using reflection (cross-assembly)
+            int remainingEnemies = GetEnemyManagerRemainingCount();
+            
+            // Wave complete when all enemies (boss + minions) are dead
+            if (remainingEnemies == 0)
+            {
+                CompleteWave();
+            }
+        }
+        
+        int GetEnemyManagerRemainingCount()
+        {
+            // Find EnemyManager by type name to avoid cross-assembly reference issues
+            var allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            foreach (var b in allBehaviours)
+            {
+                if (b.GetType().Name == "EnemyManager")
+                {
+                    // Use reflection to get NumberOfEnemiesRemaining property
+                    var prop = b.GetType().GetProperty("NumberOfEnemiesRemaining");
+                    if (prop != null)
+                    {
+                        return (int)prop.GetValue(b);
+                    }
+                }
+            }
+            return 0;
+        }
+        
         IEnumerator SpawnEnemiesFromPoint(Vector3 spawnPoint, int count, float interval)
         {
             for (int i = 0; i < count; i++)
@@ -272,6 +412,8 @@ namespace Unity.FPS.Gameplay
         void CompleteWave()
         {
             IsWaveActive = false;
+            m_IsBossWave = false;
+            m_BossInstance = null;
             
             // Stop any remaining spawn coroutines
             foreach (var coroutine in m_SpawnCoroutines)
@@ -339,20 +481,43 @@ namespace Unity.FPS.Gameplay
                 }
             }
             
-            // Get LockletAudioController and apply audio volume overrides
+            // Apply audio settings to LockletAudioController
             foreach (var component in enemy.GetComponents<MonoBehaviour>())
             {
                 var type = component.GetType();
                 if (type.Name == "LockletAudioController")
                 {
-                    // Use reflection to set audio volumes
-                    var hitmarkerVolumeField = type.GetField("HitmarkerVolume");
-                    var statusVolumeField = type.GetField("StatusIndicatorVolume");
+                    // Hitmarker settings
+                    if (LockletHitmarkerSound != null)
+                    {
+                        var field = type.GetField("HitmarkerSound");
+                        if (field != null) field.SetValue(component, LockletHitmarkerSound);
+                    }
+                    type.GetField("HitmarkerVolume")?.SetValue(component, LockletHitmarkerVolume);
                     
-                    if (hitmarkerVolumeField != null)
-                        hitmarkerVolumeField.SetValue(component, LockletHitmarkerVolume);
-                    if (statusVolumeField != null)
-                        statusVolumeField.SetValue(component, LockletStatusIndicatorVolume);
+                    // Status indicator settings
+                    if (LockletStatusIndicatorSound != null)
+                    {
+                        var field = type.GetField("StatusIndicatorSound");
+                        if (field != null) field.SetValue(component, LockletStatusIndicatorSound);
+                    }
+                    type.GetField("StatusIndicatorVolume")?.SetValue(component, LockletStatusIndicatorVolume);
+                    type.GetField("StatusIndicatorMaxDistance")?.SetValue(component, LockletStatusIndicatorMaxDistance);
+                    
+                    // Footstep settings
+                    if (LockletFootstepSound != null)
+                    {
+                        var field = type.GetField("FootstepSound");
+                        if (field != null) field.SetValue(component, LockletFootstepSound);
+                    }
+                    type.GetField("FootstepVolume")?.SetValue(component, LockletFootstepVolume);
+                    type.GetField("FootstepMaxDistance")?.SetValue(component, LockletFootstepMaxDistance);
+                    
+                    // Screen shake settings
+                    type.GetField("EnableFootstepShake")?.SetValue(component, LockletEnableFootstepShake);
+                    type.GetField("MaxShakeDistance")?.SetValue(component, LockletMaxShakeDistance);
+                    type.GetField("ShakeIntensity")?.SetValue(component, LockletShakeIntensity);
+                    type.GetField("ShakeDuration")?.SetValue(component, LockletShakeDuration);
                     
                     break;
                 }

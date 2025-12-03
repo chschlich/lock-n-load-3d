@@ -39,7 +39,7 @@ MonoBehaviour:
     type: 3}
   TravelSoundVolume: 0.5
   ImpactSoundVolume: 1
-  ExplosionRadius: 3
+  ExplosionRadius: 3.7
   MaxShakeDistance: 15
   ShakeIntensity: 0.8
   ShakeDuration: 0.3

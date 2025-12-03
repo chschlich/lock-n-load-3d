@@ -26,7 +26,7 @@ MonoBehaviour:
   ProjectilesPerShot: 1
   SpreadAngle: 0
   SpecialAbility: 1
-  AbilityPower: 5
+  AbilityPower: 1.93
   WeaponModelPrefab: {fileID: 2225486910712267859, guid: b6c88b7f40f7f994f98a48d1e67d3c75,
     type: 3}
   MuzzleFlashScale: 0.9

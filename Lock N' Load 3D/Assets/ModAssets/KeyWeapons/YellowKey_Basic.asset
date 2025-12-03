@@ -38,7 +38,7 @@ MonoBehaviour:
   ProjectileImpactSound: {fileID: 8300000, guid: cf9307d14a575744fa74d560775907b1,
     type: 3}
   TravelSoundVolume: 0.5
-  ImpactSoundVolume: 1
+  ImpactSoundVolume: 1.4
   ExplosionRadius: 5
   MaxShakeDistance: 15
   ShakeIntensity: 0.8

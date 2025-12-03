@@ -12,6 +12,13 @@ namespace Unity.FPS.Gameplay
         private AudioSource m_TravelAudioSource;
         private AudioClip m_ImpactClip;
         private float m_ImpactVolume = 1f;
+        
+        // Static shared AudioSource for impact sounds (2D, centered audio)
+        private static AudioSource s_ImpactAudioSource;
+        private static float s_LastImpactTime = 0f;
+        
+        // Constants
+        private const float IMPACT_COOLDOWN = 0.05f; // Minimum time between impact sounds (prevents distortion)
 
         void Awake()
         {
@@ -29,6 +36,24 @@ namespace Unity.FPS.Gameplay
             if (audioGroup != null)
             {
                 m_TravelAudioSource.outputAudioMixerGroup = audioGroup;
+            }
+            
+            // Create shared impact audio source if it doesn't exist
+            EnsureImpactAudioSource();
+        }
+        
+        static void EnsureImpactAudioSource()
+        {
+            if (s_ImpactAudioSource == null)
+            {
+                // Create a persistent GameObject for impact audio
+                GameObject impactAudioObj = new GameObject("ProjectileImpactAudio");
+                DontDestroyOnLoad(impactAudioObj);
+                
+                s_ImpactAudioSource = impactAudioObj.AddComponent<AudioSource>();
+                s_ImpactAudioSource.playOnAwake = false;
+                s_ImpactAudioSource.spatialBlend = 0f; // 2D audio - no stereo panning
+                s_ImpactAudioSource.volume = 1f;
             }
         }
 
@@ -53,16 +78,21 @@ namespace Unity.FPS.Gameplay
 
         /// <summary>
         /// Called by ProjectileStandard before the projectile is destroyed.
-        /// Spawns a separate AudioSource for the impact sound since this object will be destroyed.
+        /// Uses shared 2D AudioSource with cooldown to prevent distortion from rapid impacts.
         /// </summary>
         public void PlayImpactSound(Vector3 position)
         {
-            if (m_ImpactClip != null)
+            if (m_ImpactClip != null && s_ImpactAudioSource != null)
             {
-                // Apply master impact volume from settings
-                float finalVolume = m_ImpactVolume * KeyWeaponAudioSettings.ImpactVolume;
-                // Increased rolloff from 3f to 50f for better audibility
-                AudioUtility.CreateSFX(m_ImpactClip, position, AudioUtility.AudioGroups.Impact, 1f, 50f, finalVolume);
+                // Check cooldown to prevent audio buildup/distortion
+                if (Time.time - s_LastImpactTime >= IMPACT_COOLDOWN)
+                {
+                    s_LastImpactTime = Time.time;
+                    
+                    // Apply master impact volume from settings, clamped to prevent distortion
+                    float finalVolume = Mathf.Clamp01(m_ImpactVolume * KeyWeaponAudioSettings.ImpactVolume);
+                    s_ImpactAudioSource.PlayOneShot(m_ImpactClip, finalVolume);
+                }
             }
         }
 
