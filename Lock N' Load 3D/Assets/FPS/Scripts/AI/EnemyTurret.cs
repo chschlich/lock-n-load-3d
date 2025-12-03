@@ -53,14 +53,22 @@ namespace Unity.FPS.AI
             m_EnemyController.onLostTarget += OnLostTarget;
 
             // Remember the rotation offset between the pivot's forward and the weapon's forward
-            m_RotationWeaponForwardToPivot =
-                Quaternion.Inverse(m_EnemyController.GetCurrentWeapon().WeaponMuzzle.rotation) * TurretPivot.rotation;
+            if (TurretPivot != null)
+            {
+                m_RotationWeaponForwardToPivot =
+                    Quaternion.Inverse(m_EnemyController.GetCurrentWeapon().WeaponMuzzle.rotation) * TurretPivot.rotation;
+                m_PreviousPivotAimingRotation = TurretPivot.rotation;
+            }
+            else
+            {
+                m_RotationWeaponForwardToPivot = Quaternion.identity;
+                m_PreviousPivotAimingRotation = transform.rotation;
+            }
 
             // Start with idle
             AiState = AIState.Idle;
 
             m_TimeStartedDetection = Mathf.NegativeInfinity;
-            m_PreviousPivotAimingRotation = TurretPivot.rotation;
         }
 
         void Update()
@@ -111,6 +119,8 @@ namespace Unity.FPS.AI
 
         void UpdateTurretAiming()
         {
+            if (TurretPivot == null) return;
+            
             switch (AiState)
             {
                 case AIState.Attack:
@@ -134,7 +144,10 @@ namespace Unity.FPS.AI
                 RandomHitSparks[n].Play();
             }
 
-            Animator.SetTrigger(k_AnimOnDamagedParameter);
+            if (Animator != null)
+            {
+                Animator.SetTrigger(k_AnimOnDamagedParameter);
+            }
         }
 
         void OnDetectedTarget()
@@ -154,7 +167,10 @@ namespace Unity.FPS.AI
                 AudioUtility.CreateSFX(OnDetectSfx, transform.position, AudioUtility.AudioGroups.EnemyDetection, 1f);
             }
 
-            Animator.SetBool(k_AnimIsActiveParameter, true);
+            if (Animator != null)
+            {
+                Animator.SetBool(k_AnimIsActiveParameter, true);
+            }
             m_TimeStartedDetection = Time.time;
         }
 
@@ -170,7 +186,10 @@ namespace Unity.FPS.AI
                 OnDetectVfx[i].Stop();
             }
 
-            Animator.SetBool(k_AnimIsActiveParameter, false);
+            if (Animator != null)
+            {
+                Animator.SetBool(k_AnimIsActiveParameter, false);
+            }
             m_TimeLostDetection = Time.time;
         }
     }

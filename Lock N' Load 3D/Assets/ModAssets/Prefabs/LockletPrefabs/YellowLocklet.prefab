@@ -291,8 +291,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.33, y: 0.33, z: 0.33}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4106976931657864111}
   - {fileID: 1464687048468465741}
@@ -442,7 +442,7 @@ MonoBehaviour:
   DetectionRange: 50
   AttackRange: 2
   MoveSpeed: 4
-  PatrolSpeed: 2
+  PatrolSpeed: 2.5
   StoppingDistance: 0.8
   PatrolPath: {fileID: 0}
   DeathDuration: 1.5
@@ -530,6 +530,7 @@ MonoBehaviour:
   StatusIndicatorSound: {fileID: 8300000, guid: 1f107687413f47440b0df8c4e45aff18,
     type: 3}
   StatusIndicatorVolume: 5
+  StatusIndicatorMaxDistance: 250
   FootstepSound: {fileID: 8300000, guid: 1f4349f40a872d34ab72c760a039a212, type: 3}
   FootstepVolume: 0.5
   FootstepMaxDistance: 50
@@ -666,11 +667,21 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -7430837195037131117, guid: cee3be2a524898f43bc01b7ed89e0d32,
+        type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 18975475afb252e4ba01f342f444ee64, type: 2}
     - target: {fileID: 919132149155446097, guid: cee3be2a524898f43bc01b7ed89e0d32,
         type: 3}
       propertyPath: m_Name
       value: Locklet
       objectReference: {fileID: 0}
+    - target: {fileID: 1171005977850069226, guid: cee3be2a524898f43bc01b7ed89e0d32,
+        type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 18975475afb252e4ba01f342f444ee64, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

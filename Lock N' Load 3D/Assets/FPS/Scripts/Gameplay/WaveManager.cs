@@ -55,9 +55,9 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Size of spawn point gizmos")]
         public float GizmoSize = 1f;
         
-        [Header("Enemy Prefab")]
-        [Tooltip("The locklet prefab to spawn")]
-        public GameObject EnemyPrefab;
+        [Header("Enemy Prefabs")]
+        [Tooltip("The locklet prefabs to spawn - one will be randomly chosen for each spawn")]
+        public GameObject[] EnemyPrefabs;
         
         [Header("Ole Locklet (Boss Wave)")]
         [Tooltip("The Ole Locklet boss prefab")]
@@ -163,9 +163,9 @@ namespace Unity.FPS.Gameplay
         
         void Start()
         {
-            if (EnemyPrefab == null)
+            if (EnemyPrefabs == null || EnemyPrefabs.Length == 0)
             {
-                Debug.LogError("WaveManager: EnemyPrefab is not assigned!");
+                Debug.LogError("WaveManager: EnemyPrefabs array is empty!");
                 return;
             }
             
@@ -341,10 +341,10 @@ namespace Unity.FPS.Gameplay
         void OnBossDied()
         {
             m_BossInstance = null;
-            Debug.Log("Ole Locklet defeated! Waiting for remaining minions...");
+            Debug.Log("Ole Locklet defeated! VICTORY!");
             
-            // Check if wave should complete (boss dead + all minions dead)
-            CheckBossWaveComplete();
+            // Boss defeated = instant victory, don't wait for minions
+            CompleteWave();
         }
         
         void CheckBossWaveComplete()
@@ -395,12 +395,14 @@ namespace Unity.FPS.Gameplay
                 
                 Vector3 spawnPosition = spawnPoint + offset;
                 
-                // Spawn the enemy (it will self-register with EnemyManager in its Start())
-                GameObject enemy = Instantiate(EnemyPrefab, spawnPosition, Quaternion.identity);
-                enemy.transform.localScale = Vector3.one * EnemyScale;
+                // Randomly select an enemy prefab
+                GameObject prefabToSpawn = EnemyPrefabs[Random.Range(0, EnemyPrefabs.Length)];
                 
-                // Apply locklet stats override using reflection to avoid assembly issues
-                ApplyLockletStats(enemy);
+                // Spawn the enemy (it will self-register with EnemyManager in its Start())
+                GameObject enemy = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+                
+                // Don't override scale - let each prefab use its own scale settings
+                // Don't override stats - let each prefab use its own health/speed settings
                 
                 EnemiesSpawned++;
                 m_EnemiesRemainingToSpawn--;
