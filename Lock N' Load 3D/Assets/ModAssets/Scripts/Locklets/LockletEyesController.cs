@@ -13,7 +13,8 @@ public class LockletEyesController : MonoBehaviour
 
     void Awake()
     {
-        mpb = new MaterialPropertyBlock();
+        if (mpb == null)
+            mpb = new MaterialPropertyBlock();
     }
 
     public void LookAt(Vector3 worldPosition)
@@ -36,11 +37,30 @@ public class LockletEyesController : MonoBehaviour
 
     public void SetEyes(int eyesIdx)
     {
+        if (mpb == null)
+            mpb = new MaterialPropertyBlock();
+        
+        Debug.Log($"LockletEyesController.SetEyes({eyesIdx}): eyeRenderers array has {(eyeRenderers != null ? eyeRenderers.Length : 0)} elements");
+            
         if (eyeRenderers != null)
         {
-            foreach (var eyeRenderer in eyeRenderers)
+            for (int i = 0; i < eyeRenderers.Length; i++)
             {
-                var tex = eyeRenderer.material.mainTexture;
+                var eyeRenderer = eyeRenderers[i];
+                
+                if (eyeRenderer == null)
+                {
+                    Debug.LogWarning($"LockletEyesController.SetEyes({eyesIdx}): eyeRenderers[{i}] is NULL!");
+                    continue;
+                }
+                    
+                var tex = eyeRenderer.sharedMaterial != null ? eyeRenderer.sharedMaterial.mainTexture : null;
+                if (tex == null)
+                {
+                    Debug.LogWarning($"LockletEyesController.SetEyes({eyesIdx}): eyeRenderers[{i}] ({eyeRenderer.gameObject.name}) has no texture!");
+                    continue;
+                }
+                    
                 var cellWidth = (float)(eyeSpriteDimensions.x + 1) / tex.width;
                 var cellHeight = (float)(eyeSpriteDimensions.y + 1) / tex.height;
 
@@ -50,6 +70,8 @@ public class LockletEyesController : MonoBehaviour
                 eyeRenderer.GetPropertyBlock(mpb);
                 mpb.SetVector("_BaseMap_ST", new Vector4(1f, 1f, col * cellWidth, row * -cellHeight));
                 eyeRenderer.SetPropertyBlock(mpb);
+                
+                Debug.Log($"LockletEyesController.SetEyes({eyesIdx}): Set UV offset to ({col * cellWidth}, {row * -cellHeight}) on {eyeRenderer.gameObject.name}");
             }
         }
     }

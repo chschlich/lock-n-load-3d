@@ -12,9 +12,9 @@ namespace Unity.FPS.AI
     [RequireComponent(typeof(Health))]
     public class OleLockletSpawner : MonoBehaviour
     {
-        [Header("Minion Prefab")]
-        [Tooltip("The locklet prefab to spawn as minions")]
-        public GameObject MinionPrefab;
+        [Header("Minion Prefabs")]
+        [Tooltip("The locklet prefabs to spawn as minions - one will be randomly chosen for each spawn")]
+        public GameObject[] MinionPrefabs;
 
         [Header("Spawn Audio")]
         [Tooltip("Sound effect played when a minion spawns")]
@@ -34,10 +34,10 @@ namespace Unity.FPS.AI
 
         [Header("Spawn Timing")]
         [Tooltip("Time between spawns at full health")]
-        public float BaseSpawnInterval = 5f;
+        public float BaseSpawnInterval = 12f;
 
         [Tooltip("Time between spawns at critical health")]
-        public float MinSpawnInterval = 0.5f;
+        public float MinSpawnInterval = 4f;
 
         [Header("Spawn Count")]
         [Tooltip("Number of minions spawned per cycle at full health")]
@@ -131,9 +131,9 @@ namespace Unity.FPS.AI
                 Debug.LogWarning("OleLockletSpawner: No BoxCollider found, using transform position for spawns");
             }
 
-            if (MinionPrefab == null)
+            if (MinionPrefabs == null || MinionPrefabs.Length == 0)
             {
-                Debug.LogError("OleLockletSpawner: MinionPrefab is not assigned!");
+                Debug.LogError("OleLockletSpawner: MinionPrefabs array is empty!");
                 return;
             }
 
@@ -226,12 +226,11 @@ namespace Unity.FPS.AI
             {
                 Vector3 spawnPosition = GetRandomSpawnPosition();
                 
-                // Spawn the minion
-                GameObject minion = Instantiate(MinionPrefab, spawnPosition, Quaternion.identity);
-                minion.transform.localScale = Vector3.one * MinionScale;
-
-                // Apply minion stats
-                ApplyMinionStats(minion);
+                // Randomly select a minion prefab
+                GameObject prefabToSpawn = MinionPrefabs[Random.Range(0, MinionPrefabs.Length)];
+                
+                // Spawn the minion - no stat overrides, use prefab defaults
+                GameObject minion = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
                 
                 // Track spawned minion
                 m_SpawnedMinions.Add(minion);
